@@ -1,0 +1,93 @@
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[project]
+name = "inflowpay"
+version = "0.1.0"
+description = "InFlow Python SDK for MPP and x402 payments"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Nas Kavian", email = "nas@inflowpay.ai" }]
+keywords = ["agent", "inflow", "mpp", "payments", "x402"]
+classifiers = [
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Typing :: Typed",
+]
+dependencies = ["httpx>=0.28.1,<1"]
+
+[project.urls]
+Issues = "https://github.com/inflowpayai/inflow-python/issues"
+Repository = "https://github.com/inflowpayai/inflow-python"
+
+[project.optional-dependencies]
+evm = ["x402[evm]>=2.25.0,<3"]
+fastapi = ["fastapi>=0.142.2,<1"]
+mcp = ["mcp>=1.30.0,<2", "pympp[mcp]>=0.11.0,<0.12", "x402[mcp]>=2.25.0,<3"]
+mpp = ["pympp>=0.11.0,<0.12"]
+svm = ["x402[svm]>=2.25.0,<3"]
+x402 = ["x402>=2.25.0,<3"]
+
+[dependency-groups]
+dev = [
+  "build==1.6.1",
+  "mypy==2.3.1",
+  "pytest==9.1.1",
+  "pytest-asyncio==1.4.0",
+  "pytest-cov==7.1.0",
+  "ruff==0.16.8",
+  "twine==7.0.0",
+]
+
+[tool.hatch.build.targets.sdist]
+include = ["/LICENSE", "/README.md", "/src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/inflowpay"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src", "tests", "scripts"]
+
+[tool.pytest.ini_options]
+addopts = [
+  "--cov=inflowpay",
+  "--cov-branch",
+  "--cov-fail-under=100",
+  "--cov-report=term-missing",
+  "--cov-report=xml",
+  "--cov-report=json",
+  "--strict-config",
+  "--strict-markers",
+]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["inflowpay"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+precision = 2
+exclude_also = ["if TYPE_CHECKING:"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "RUF", "SIM", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["inflowpay"]
