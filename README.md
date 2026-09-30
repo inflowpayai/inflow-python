@@ -21,3 +21,26 @@ fields and additional receipt extensions through MCP serialization, parsing, and
 core conversions. It also preserves the payment method when converting an MCP
 receipt back to a core receipt. Until that fix is included in the version of
 `pympp` you install, do not rely on its MCP receipt objects to retain those fields.
+
+## x402 facilitator capabilities
+
+Facilitator capabilities describe the payment schemes, networks, and extensions
+the facilitator supports. InFlow fetches these capabilities asynchronously during
+adapter creation. Setup fails if that request fails, rather than returning an
+adapter without capability data.
+
+The upstream Python x402 resource server calls a synchronous `get_supported()`
+method during initialization. The InFlow adapter answers from its preloaded
+capabilities without making a network request. Payment verification and settlement
+remain asynchronous.
+
+Capabilities stay fixed for the lifetime of the adapter and its resource server.
+To load capability changes, recreate both instances or restart the application.
+Refreshing only the adapter's data or calling `initialize()` again on the same
+upstream resource server is insufficient: x402 Python 2.25.0 retains existing
+capability mappings, including networks removed from the facilitator's response.
+
+This differs from the InFlow Node facilitator's one-hour capability cache. Node
+refreshes that cache when it is queried after expiry; it does not automatically
+reinitialize the application's resource server every hour. In Python, there is
+no timed capability refresh or background polling.
