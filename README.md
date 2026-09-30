@@ -1,5 +1,35 @@
 # InFlow Python SDK
 
+Python integration for InFlow payments using the Machine Payments Protocol (MPP)
+and x402. The Python distribution and import namespace are both `inflowpay`.
+Python 3.11 or newer is required.
+
+## Working with the repository
+
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run:
+
+```sh
+make sync
+make verify
+```
+
+`make sync` installs the exact development dependencies from `uv.lock`, including
+optional integrations. `make verify` checks formatting, lint, strict typing, tests,
+and complete line and branch coverage for each source file. It also builds the
+source distribution and wheel, checks package metadata, and installs the wheel
+outside the checkout to verify imports and the `py.typed` marker.
+The consumer check exercises both the base installation and the combined optional
+dependencies without issuing payments or contacting InFlow.
+
+Protocol and framework dependencies are optional. The `mpp` and `x402` extras
+select payment libraries; `evm` and `svm` select x402 external-wallet dependencies;
+`mcp` selects MCP dependencies for both protocols; `fastapi` selects the optional
+web framework. The base package does not install those extras.
+
+Runtime dependencies use compatible version ranges; `uv.lock` records the exact
+versions used in development and CI. MCP dependencies use the 1.x line required by
+pympp. No framework or blockchain package is imported by `import inflowpay`.
+
 ## Upstream MPP compatibility
 
 ### MCP payment receipts
