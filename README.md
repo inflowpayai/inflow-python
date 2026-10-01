@@ -82,6 +82,52 @@ response headers are omitted. Transport errors use `TIMEOUT` or `NETWORK_ERROR` 
 
 ## Upstream MPP compatibility
 
+### Wire values and request validation
+
+Install `inflowpay[mpp]` to use `inflowpay.mpp`. Its `WireObject` is a JSON dictionary
+using the protocol's field names, such as `methodDetails` and `subscriptionId`.
+Amounts are decimal strings, not floating-point values.
+
+```python
+from inflowpay.mpp import encode, parse_challenge_headers, validate_request
+
+request = validate_request("inflow", "charge", {"amount": "1.50", "currency": "USD"})
+encoded_request = encode(request)
+# Pass one WWW-Authenticate value or a list of repeated values.
+challenges = parse_challenge_headers(
+    'Payment id="example", realm="seller.example", method="inflow", '
+    f'intent="charge", request="{encoded_request}"'
+)
+```
+
+`validate_request` checks InFlow charge/subscription and Tempo charge request shapes;
+`validate_payload` checks InFlow or Tempo credential payload shapes. Both return a
+deep copy. These checks do not establish supported currencies, account permissions,
+signature validity, or settlement. Those require the payment workflow and platform.
+
+`decode_credential` and `decode_receipt` retain the complete decoded JSON object,
+including extension fields. `decode` also accepts other JSON values. Malformed wire
+values raise `MppCodecError`. Challenge header parsing supports combined and repeated
+Payment challenges, quoted commas and escapes, and rejects duplicate parameters and
+control characters. Unknown header parameters are ignored, matching the Node SDK.
+
+`canonicalize` and `encode` omit null object members but retain null array elements,
+using RFC 8785 JSON ordering and number formatting. Monetary strings are unchanged.
+The canonical JSON encoder rejects nonfinite numbers and integers outside the JSON
+safe-integer range; use strings for exact large values. Decoding does not canonicalize.
+
+Use `to_pympp_challenge` to pass an InFlow wire challenge to pympp and
+`from_pympp_challenge` to read it back. The conversion preserves the original encoded
+request and opaque bytes, and retains extension fields when converting back from the
+returned object. It does not change the caller's dictionary. Keep the returned object
+intact: rebuilding it as a plain pympp `Challenge` discards the retained extensions.
+For a challenge created directly by pympp, only information present in that object
+can be recovered. Receipt and credential decoding use InFlow wire dictionaries
+instead of pympp's fixed-field models, which can discard fields.
+
+These are codecs and shape checks, not proof of payment. pympp owns challenge
+authentication and transport; the InFlow platform owns payment verification and settlement.
+
 ### MCP payment receipts
 
 [pympp](https://github.com/tempoxyz/pympp) provides Python support for the Machine
