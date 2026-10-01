@@ -1,0 +1,310 @@
+{
+  "cases": [
+    {
+      "id": "x402.core.identifier-minimum",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-valid",
+      "input": {
+        "value": "aaaaaaaaaaaaaaaa"
+      },
+      "expect": {
+        "result": true
+      }
+    },
+    {
+      "id": "x402.core.identifier-maximum",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-valid",
+      "input": {
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "expect": {
+        "result": true
+      }
+    },
+    {
+      "id": "x402.core.identifier-mixed",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-valid",
+      "input": {
+        "value": "ABC_def-0123456789"
+      },
+      "expect": {
+        "result": true
+      }
+    },
+    {
+      "id": "x402.core.identifier-short",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-valid",
+      "input": {
+        "value": "aaaaaaaaaaaaaaa"
+      },
+      "expect": {
+        "result": false
+      }
+    },
+    {
+      "id": "x402.core.identifier-long",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-valid",
+      "input": {
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "expect": {
+        "result": false
+      }
+    },
+    {
+      "id": "x402.core.identifier-space",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-valid",
+      "input": {
+        "value": "pay_0123456789 abcdef"
+      },
+      "expect": {
+        "result": false
+      }
+    },
+    {
+      "id": "x402.core.identifier-unicode",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-valid",
+      "input": {
+        "value": "pay_0123456789éabcdef"
+      },
+      "expect": {
+        "result": false
+      }
+    },
+    {
+      "id": "x402.core.identifier-empty",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-valid",
+      "input": {
+        "value": ""
+      },
+      "expect": {
+        "result": false
+      }
+    },
+    {
+      "id": "x402.core.identifier-null",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-valid",
+      "input": {
+        "value": null
+      },
+      "expect": {
+        "result": false
+      }
+    },
+    {
+      "id": "x402.core.identifier-declaration",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-declaration",
+      "input": {},
+      "expect": {
+        "result": {
+          "info": {
+            "required": false
+          },
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 16,
+                "maxLength": 128,
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              "required": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "required"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "x402.core.identifier-entry-false",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-entry",
+      "input": {
+        "declaration": {
+          "info": {
+            "required": false,
+            "merchant": "test-shop"
+          },
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 16,
+                "maxLength": 128,
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              "required": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "required"
+            ]
+          }
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "result": {
+          "info": {
+            "required": false,
+            "merchant": "test-shop",
+            "id": "pay_0123456789abcdef0123456789abcdef"
+          },
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 16,
+                "maxLength": 128,
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              "required": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "required"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "x402.core.identifier-entry-true",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-entry",
+      "input": {
+        "declaration": {
+          "info": {
+            "required": true,
+            "merchant": "test-shop"
+          },
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 16,
+                "maxLength": 128,
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              "required": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "required"
+            ]
+          }
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "result": {
+          "info": {
+            "required": true,
+            "merchant": "test-shop",
+            "id": "pay_0123456789abcdef0123456789abcdef"
+          },
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 16,
+                "maxLength": 128,
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              "required": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "required"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "x402.core.identifier-invalid-entry",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-entry",
+      "input": {
+        "declaration": {
+          "info": {
+            "required": false
+          },
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 16,
+                "maxLength": 128,
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              "required": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "required"
+            ]
+          }
+        },
+        "payment_id": "short"
+      },
+      "expect": {
+        "result": null
+      }
+    },
+    {
+      "id": "x402.core.identifier-null-properties",
+      "suite": "x402-core",
+      "operation": "x402.core.identifier-entry",
+      "input": {
+        "declaration": {
+          "info": {
+            "required": false
+          },
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": null,
+            "required": [
+              "required"
+            ]
+          }
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "result": null
+      }
+    }
+  ]
+}

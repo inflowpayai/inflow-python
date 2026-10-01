@@ -399,6 +399,59 @@ core conversions. It also preserves the payment method when converting an MCP
 receipt back to a core receipt. Until that fix is included in the version of
 `pympp` you install, do not rely on its MCP receipt objects to retain those fields.
 
+## x402 models and payment identifiers
+
+Install `inflowpay[x402]` to use `inflowpay.x402`. Its `PaymentRequirements`,
+`PaymentRequired`, `PaymentPayload`, verification, settlement, and capability
+models are the actual classes from the upstream Python x402 SDK, not alternative
+models that need converting before passing them to upstream code. They accept
+InFlow's `balance` scheme and `inflow:1` network as well as blockchain schemes
+and networks. Model availability does not imply that every scheme is supported
+by a particular buyer or facilitator.
+
+For example, declare an optional payment identifier on a payment request and
+construct the matching entry for its payment payload:
+
+```python
+from inflowpay.x402 import (
+    PAYMENT_IDENTIFIER,
+    declare_payment_identifier,
+    generate_payment_id,
+    payment_identifier_entry,
+)
+
+declaration = declare_payment_identifier()
+request_extensions = {PAYMENT_IDENTIFIER: declaration}
+payment_id = generate_payment_id()
+entry = payment_identifier_entry(declaration, payment_id)
+assert entry is not None
+payload_extensions = {PAYMENT_IDENTIFIER: entry}
+```
+
+The identifier is stored in `extensions["payment-identifier"]["info"]["id"]`.
+It must contain 16–128 ASCII letters, digits, underscores, or hyphens.
+`generate_payment_id()` uses a `pay_` prefix and 16 random bytes encoded as
+32 hexadecimal characters. Generate one identifier for a payment and reuse it
+when retrying that same payment; do not reuse it for a different payment.
+
+`read_payment_identifier()` returns `None` for an invalid declaration.
+`payment_identifier_entry()` returns `None` for an invalid declaration or identifier.
+Both preserve extra fields in the declaration's `info` and `schema` and return
+independent copies. The declaration uses `required: false`; supplying an
+identifier remains useful for identifying retries even when it is optional.
+
+Amounts in these models are strings in the payment method's smallest units.
+InFlow balance amounts use 18 decimal places; blockchain assets use their own
+decimal scale. `normalize_decimal_string()` removes insignificant zeros without
+floating-point conversion, rounding, or unit conversion. It is not a price
+validator: strings outside plain decimal notation are returned unchanged.
+
+Use `model_dump(by_alias=True, exclude_none=True)` when producing JSON-compatible
+wire dictionaries from upstream models. Upstream fills omitted requirement
+`extra` with `{}`; additional values inside `extra`, `payload`, and `extensions`
+are preserved. These typed models do not preserve arbitrary unknown top-level
+fields. Parsing a model or creating an identifier does not verify or settle a payment.
+
 ## x402 facilitator capabilities
 
 Facilitator capabilities describe the payment schemes, networks, and extensions
