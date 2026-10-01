@@ -206,6 +206,108 @@ purchases a subscription or authorizes an existing one. The HTTP helper's retry
 setting does not configure MCP; pympp's MCP wrapper performs its own single retry.
 See the MCP receipt limitation below before relying on receipt metadata.
 
+## MPP Seller
+
+Install `inflowpay[mpp,fastapi]` for a FastAPI service, or `inflowpay[mpp]` for the
+framework-independent payment hooks. Create a **Seller** account and an API key
+in the [Sandbox dashboard](https://sandbox.inflowpay.ai) for testing or the
+[production dashboard](https://app.inflowpay.ai) for live payments. A Developer
+account key does not authorize Seller configuration, validation, or broadcast.
+
+`await Seller.create(options)` loads Seller configuration before returning. A
+failed or cancelled setup closes its HTTP transport; retry setup with fresh
+options/transport as needed. Successful configuration stays fixed for that Seller
+instance. Unlike Node's asynchronous request hook, pympp's request transformation
+is synchronous, so configuration is loaded during application startup rather than
+inside a route. There is no background initialization or periodic refresh.
+
+Use pympp's standalone `pay` decorator with the Seller as its charge intent:
+
+```python
+import os
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
+from mpp import Credential, Receipt
+from mpp.server.decorator import pay
+from starlette.responses import JSONResponse
+
+from inflowpay import ClientOptions
+from inflowpay.mpp.seller import Seller
+
+
+@asynccontextmanager
+async def application():
+    async with await Seller.create(
+        ClientOptions(environment="sandbox", api_key=os.environ["INFLOW_API_KEY"])
+    ) as seller:
+        app = FastAPI()
+
+        @app.get("/report")
+        @pay(
+            intent=seller,
+            method=seller.method,
+            request=seller.charge_request({"amount": "0.50", "currency": "USDC"}),
+            realm="api.example.com",
+            secret_key=os.environ["MPP_SECRET_KEY"],
+        )
+        async def report(
+            request: Request, credential: Credential, receipt: Receipt
+        ) -> JSONResponse:
+            return JSONResponse(
+                {"report": "Paid content"},
+                headers={"Payment-Receipt": receipt.to_payment_receipt()},
+            )
+
+        yield app
+```
+
+Run your ASGI server inside `async with application() as app` so the Seller stays
+open until the server finishes serving requests. Keep `MPP_SECRET_KEY` stable and
+private across replicas serving the same challenges. It authenticates challenges
+locally and is separate from the InFlow API key. Set `requires_auth=True` on `pay`
+when application authentication uses `Authorization`; pympp then uses
+`Payment-Authorization` for the payment credential. The decorator does not implement
+your application's authentication or access-control policy.
+
+### Prices and payment verification
+
+For `method="inflow"`, `charge_request` preserves the decimal price, sets the
+recipient from authenticated Seller configuration, and selects an advertised rail
+for the currency. When several rails are advertised, provide `methodDetails.rail`.
+If the selected rail requires an instrument, provide `methodDetails.instrumentId`.
+An unsupported currency, ambiguous selection, or missing required instrument raises
+`MppSellerConfigurationError`; the SDK does not invent a payment option.
+
+For `method="tempo"`, supply the token `currency` address, recipient address, and
+integer base-unit `amount`. For example, `"500000"` is half a token with six decimal
+places. `methodDetails` defaults to `feePayer=False` and `supportedModes=["pull"]`;
+explicit request values override those defaults. Do not supply `decimals` to
+`charge_request`: it expects the payment method's wire amount, not a conversion hint.
+Request preparation copies your data rather than modifying it.
+
+pympp authenticates the challenge and checks the route's request before invoking
+the Seller hooks. `validate` checks the credential with InFlow without settling it;
+`broadcast` performs the terminal operation. Do not call these hooks with an
+unverified credential instead of using pympp's verification entry point. Successful
+validation alone does not authorize delivery of paid content.
+
+Configuration, validation, and broadcast use the shared transient retry policy.
+When the platform advertises idempotency support, a broadcast call generates one
+key and reuses it across its HTTP retries; separate calls have separate keys.
+The platform owns payment replay protection. Do not retry an entire payment flow
+merely because its response was lost. Cancellation stops an in-flight request but
+does not reverse a payment that reached the platform.
+
+Payment rejections raise `MppCredentialProblemError`, retaining the platform
+`problem`; pympp renders it as a payment error response. Invalid lifecycle responses
+produce a fixed verification-failed problem. HTTP failures remain `InflowApiError`.
+Receipts preserve the platform's timestamp precision and additional wire fields.
+The endpoint must explicitly attach the `Payment-Receipt` header, as above.
+
+Seller subscriptions and multiple InFlow offers on one endpoint are excluded for
+the upstream reasons documented below. Buyer subscription support is independent.
+
 ## Upstream MPP compatibility
 
 ### Wire values and request validation
@@ -253,6 +355,29 @@ instead of pympp's fixed-field models, which can discard fields.
 
 These are codecs and shape checks, not proof of payment. pympp owns challenge
 authentication and transport; the InFlow platform owns payment verification and settlement.
+
+### Seller route limitations
+
+InFlow charges use decimal amounts: `"0.50"` means half a unit of the specified
+currency. pympp 0.11.0's high-level `Mpp.pay` and `Mpp.compose` helpers convert
+prices to integer token units instead. Do not pass InFlow decimal prices through
+those helpers. The standalone `mpp.server.pay` decorator accepts a complete
+request dictionary and preserves its amount when no `decimals` field is supplied.
+The endpoint handler must attach the returned receipt to its response using
+`receipt.to_payment_receipt()` as the `Payment-Receipt` header value.
+
+Multiple InFlow offers on one endpoint and Seller subscription routes are not
+supported by this integration. Upstream composition does not accept the standalone
+decorated handlers, and its fixed route options do not expose subscription terms
+such as `periodUnit`, `periodCount`, and `subscriptionExpires`. These are separate
+limitations; neither changes the Buyer subscription support described above.
+
+[Upstream issue #268](https://github.com/tempoxyz/pympp/issues/268) tracks parity
+with mppx's method-specific amount handling.
+[Upstream issue #269](https://github.com/tempoxyz/pympp/issues/269) separately tracks
+subscription request fields in Seller routes and composition.
+The integration does not reverse upstream's token conversion or implement a separate
+offer-selection system to bypass these limitations.
 
 ### MCP payment receipts
 
