@@ -1,0 +1,695 @@
+{
+  "auth.missing": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {}
+        },
+        "response": {
+          "status": 401,
+          "headers": {
+            "www-authenticate": "Bearer resource_metadata=\"/.well-known/oauth-protected-resource\""
+          }
+        }
+      }
+    ]
+  },
+  "auth.invalid-key": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-invalid-key"
+          }
+        },
+        "response": {
+          "status": 401,
+          "headers": {
+            "www-authenticate": "Bearer resource_metadata=\"/.well-known/oauth-protected-resource\""
+          }
+        }
+      }
+    ]
+  },
+  "auth.expired-bearer": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "authorization": "Bearer test-only-expired-token"
+          }
+        },
+        "response": {
+          "status": 401,
+          "headers": {
+            "www-authenticate": "Bearer resource_metadata=\"/.well-known/oauth-protected-resource\""
+          }
+        }
+      }
+    ]
+  },
+  "approval.pending-to-approved": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      },
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      },
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "APPROVED",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      }
+    ]
+  },
+  "approval.cancel": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      },
+      {
+        "request": {
+          "method": "POST",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111/cancel",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 204
+        }
+      },
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 404,
+          "json": {
+            "errors": [
+              {
+                "code": "APPROVAL_NOT_FOUND",
+                "message": "The specified approval is not found.",
+                "parameter": "approvalId"
+              }
+            ],
+            "id": "44444444-4444-4444-8444-444444444444"
+          }
+        }
+      },
+      {
+        "request": {
+          "method": "POST",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111/cancel",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 404,
+          "json": {
+            "errors": [
+              {
+                "code": "APPROVAL_NOT_FOUND",
+                "message": "The specified approval is not found.",
+                "parameter": "approvalId"
+              }
+            ],
+            "id": "44444444-4444-4444-8444-444444444444"
+          }
+        }
+      }
+    ]
+  },
+  "approval.not-owned": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "POST",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111/cancel",
+          "headers": {
+            "x-api-key": "test-only-other-owner-key"
+          }
+        },
+        "response": {
+          "status": 404,
+          "json": {
+            "errors": [
+              {
+                "code": "APPROVAL_NOT_FOUND",
+                "message": "The specified approval is not found.",
+                "parameter": "approvalId"
+              }
+            ],
+            "id": "44444444-4444-4444-8444-444444444444"
+          }
+        }
+      }
+    ]
+  },
+  "approval.cancel-unavailable": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      },
+      {
+        "request": {
+          "method": "POST",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111/cancel",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 500
+        }
+      }
+    ]
+  },
+  "auth.buyer-key": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      }
+    ]
+  },
+  "auth.seller-required-buyer-key": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/mpp/config",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 403,
+          "json": {
+            "errors": [
+              {
+                "code": "SELLER_ACCOUNT_REQUIRED",
+                "message": "The supplied credentials belong to a Buyer account. This endpoint requires a Seller account."
+              }
+            ],
+            "id": "44444444-4444-4444-8444-444444444444"
+          }
+        }
+      }
+    ]
+  },
+  "auth.buyer-bearer": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "authorization": "Bearer test-only-buyer-token"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      }
+    ]
+  },
+  "auth.seller-required-buyer-bearer": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/mpp/config",
+          "headers": {
+            "authorization": "Bearer test-only-buyer-token"
+          }
+        },
+        "response": {
+          "status": 403,
+          "json": {
+            "errors": [
+              {
+                "code": "SELLER_ACCOUNT_REQUIRED",
+                "message": "The supplied credentials belong to a Buyer account. This endpoint requires a Seller account."
+              }
+            ],
+            "id": "44444444-4444-4444-8444-444444444444"
+          }
+        }
+      }
+    ]
+  },
+  "auth.developer-key": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-developer-key"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      }
+    ]
+  },
+  "auth.seller-required-developer-key": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/mpp/config",
+          "headers": {
+            "x-api-key": "test-only-developer-key"
+          }
+        },
+        "response": {
+          "status": 403,
+          "json": {
+            "errors": [
+              {
+                "code": "SELLER_ACCOUNT_REQUIRED",
+                "message": "The supplied credentials belong to a Developer account. This endpoint requires a Seller account."
+              }
+            ],
+            "id": "44444444-4444-4444-8444-444444444444"
+          }
+        }
+      }
+    ]
+  },
+  "auth.developer-bearer": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "authorization": "Bearer test-only-developer-token"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      }
+    ]
+  },
+  "auth.seller-required-developer-bearer": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/mpp/config",
+          "headers": {
+            "authorization": "Bearer test-only-developer-token"
+          }
+        },
+        "response": {
+          "status": 403,
+          "json": {
+            "errors": [
+              {
+                "code": "SELLER_ACCOUNT_REQUIRED",
+                "message": "The supplied credentials belong to a Developer account. This endpoint requires a Seller account."
+              }
+            ],
+            "id": "44444444-4444-4444-8444-444444444444"
+          }
+        }
+      }
+    ]
+  },
+  "auth.seller-key": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-seller-key"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      }
+    ]
+  },
+  "auth.seller-bearer": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "authorization": "Bearer test-only-seller-token"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      }
+    ]
+  },
+  "auth.agent-key": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-agent-key"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      }
+    ]
+  },
+  "auth.seller-required-agent-key": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/mpp/config",
+          "headers": {
+            "x-api-key": "test-only-agent-key"
+          }
+        },
+        "response": {
+          "status": 403,
+          "json": {
+            "errors": [
+              {
+                "code": "SELLER_ACCOUNT_REQUIRED",
+                "message": "The supplied credentials belong to an Agent account. This endpoint requires a Seller account."
+              }
+            ],
+            "id": "44444444-4444-4444-8444-444444444444"
+          }
+        }
+      }
+    ]
+  },
+  "auth.agent-bearer": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "authorization": "Bearer test-only-agent-token"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      }
+    ]
+  },
+  "auth.seller-required-agent-bearer": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/mpp/config",
+          "headers": {
+            "authorization": "Bearer test-only-agent-token"
+          }
+        },
+        "response": {
+          "status": 403,
+          "json": {
+            "errors": [
+              {
+                "code": "SELLER_ACCOUNT_REQUIRED",
+                "message": "The supplied credentials belong to an Agent account. This endpoint requires a Seller account."
+              }
+            ],
+            "id": "44444444-4444-4444-8444-444444444444"
+          }
+        }
+      }
+    ]
+  },
+  "approval.pending-to-declined": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      },
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "DECLINED",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      }
+    ]
+  },
+  "approval.pending-to-unavailable": {
+    "exchanges": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "requestId": "11111111-1111-4111-8111-111111111111",
+            "requesterId": "22222222-2222-4222-8222-222222222222",
+            "userId": "33333333-3333-4333-8333-333333333333",
+            "status": "PENDING",
+            "type": "PAYMENT",
+            "visaTap": false
+          }
+        }
+      },
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/approvals/11111111-1111-4111-8111-111111111111",
+          "headers": {
+            "x-api-key": "test-only-buyer-key"
+          }
+        },
+        "response": {
+          "status": 404,
+          "json": {
+            "errors": [
+              {
+                "code": "APPROVAL_NOT_FOUND",
+                "message": "The specified approval is not found.",
+                "parameter": "approvalId"
+              }
+            ],
+            "id": "44444444-4444-4444-8444-444444444444"
+          }
+        }
+      }
+    ]
+  }
+}
