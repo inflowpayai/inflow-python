@@ -27,6 +27,17 @@ from x402.mechanisms.svm.exact import ExactSvmClientScheme
 import x402.mcp
 """
 
+MPP_CONSUMER = """
+from importlib import util
+from inflowpay.mpp import encode, decode, to_pympp_challenge, from_pympp_challenge
+wire = dict(id='test', realm='seller.example', method='inflow', intent='charge',
+            request=encode({'amount': '1'}))
+assert from_pympp_challenge(to_pympp_challenge(wire)) == wire
+assert decode(wire['request']) == {'amount': '1'}
+for name in ('x402', 'mcp', 'web3', 'solana', 'fastapi'):
+    assert util.find_spec(name) is None, name
+"""
+
 
 def main() -> None:
     repository = Path(__file__).resolve().parents[1]
@@ -55,6 +66,10 @@ def main() -> None:
             ["uv", "pip", "install", "--python", str(python), str(wheels[0])], check=True
         )
         subprocess.run([str(python), "-I", "-c", CONSUMER], cwd=temporary, check=True)
+        subprocess.run(
+            ["uv", "pip", "install", "--python", str(python), f"{wheels[0]}[mpp]"], check=True
+        )
+        subprocess.run([str(python), "-I", "-c", MPP_CONSUMER], cwd=temporary, check=True)
         subprocess.run(
             [
                 "uv",

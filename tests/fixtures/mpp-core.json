@@ -1,0 +1,388 @@
+[
+  {
+    "id": "mpp.core.encode-request",
+    "suite": "mpp-core",
+    "operation": "mpp.core.encode",
+    "input": {
+      "value": {
+        "amount": "10.5",
+        "currency": "USDC",
+        "methodDetails": {
+          "rail": "balance"
+        },
+        "recipient": "11111111-1111-1111-1111-111111111111"
+      }
+    },
+    "expect": {
+      "result": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ"
+    }
+  },
+  {
+    "id": "mpp.core.decode-request",
+    "suite": "mpp-core",
+    "operation": "mpp.core.decode",
+    "input": {
+      "value": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEifQ"
+    },
+    "expect": {
+      "result": {
+        "amount": "10.5",
+        "currency": "USDC",
+        "methodDetails": {
+          "rail": "balance"
+        },
+        "recipient": "11111111-1111-1111-1111-111111111111"
+      }
+    }
+  },
+  {
+    "id": "mpp.core.combined-challenges",
+    "suite": "mpp-core",
+    "operation": "mpp.core.parse-challenges",
+    "input": {
+      "headers": "Payment id=\"test-balance\", realm=\"seller.example\", method=\"inflow\", intent=\"charge\", request=\"eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ\", Payment id=\"test-instrument\", realm=\"seller.example\", method=\"inflow\", intent=\"charge\", request=\"eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0QiLCJtZXRob2REZXRhaWxzIjp7Imluc3RydW1lbnRJZCI6IjU1NTU1NTU1LTU1NTUtNDU1NS04NTU1LTU1NTU1NTU1NTU1NSIsInJhaWwiOiJpbnN0cnVtZW50In0sInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSJ9\""
+    },
+    "expect": {
+      "result": [
+        {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        {
+          "id": "test-instrument",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0QiLCJtZXRob2REZXRhaWxzIjp7Imluc3RydW1lbnRJZCI6IjU1NTU1NTU1LTU1NTUtNDU1NS04NTU1LTU1NTU1NTU1NTU1NSIsInJhaWwiOiJpbnN0cnVtZW50In0sInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSJ9"
+        }
+      ]
+    }
+  },
+  {
+    "id": "mpp.core.repeated-challenges",
+    "suite": "mpp-core",
+    "operation": "mpp.core.parse-challenges",
+    "input": {
+      "headers": [
+        "Payment id=\"test-balance\", realm=\"seller.example\", method=\"inflow\", intent=\"charge\", request=\"eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ\"",
+        "Payment id=\"test-instrument\", realm=\"seller.example\", method=\"inflow\", intent=\"charge\", request=\"eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0QiLCJtZXRob2REZXRhaWxzIjp7Imluc3RydW1lbnRJZCI6IjU1NTU1NTU1LTU1NTUtNDU1NS04NTU1LTU1NTU1NTU1NTU1NSIsInJhaWwiOiJpbnN0cnVtZW50In0sInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSJ9\""
+      ]
+    },
+    "expect": {
+      "result": [
+        {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        {
+          "id": "test-instrument",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0QiLCJtZXRob2REZXRhaWxzIjp7Imluc3RydW1lbnRJZCI6IjU1NTU1NTU1LTU1NTUtNDU1NS04NTU1LTU1NTU1NTU1NTU1NSIsInJhaWwiOiJpbnN0cnVtZW50In0sInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSJ9"
+        }
+      ]
+    }
+  },
+  {
+    "id": "mpp.core.escaped-description",
+    "suite": "mpp-core",
+    "operation": "mpp.core.parse-challenges",
+    "input": {
+      "headers": "Payment id=\"test-balance\", realm=\"seller.example\", method=\"inflow\", intent=\"charge\", request=\"eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ\", description=\"Pay \\\"now\\\", then \\\\ later\""
+    },
+    "expect": {
+      "result": [
+        {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ",
+          "description": "Pay \"now\", then \\ later"
+        }
+      ]
+    }
+  },
+  {
+    "id": "mpp.core.duplicate-id",
+    "suite": "mpp-core",
+    "operation": "mpp.core.parse-challenges",
+    "input": {
+      "headers": "Payment id=\"test-balance\", realm=\"seller.example\", method=\"inflow\", intent=\"charge\", request=\"eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ\", id=\"duplicate\""
+    },
+    "expect": {
+      "error": {
+        "code": "invalid-input",
+        "message": "Invalid input."
+      }
+    }
+  },
+  {
+    "id": "mpp.core.credential-balance",
+    "suite": "mpp-core",
+    "operation": "mpp.core.decode-credential",
+    "input": {
+      "value": "eyJjaGFsbGVuZ2UiOnsiaWQiOiJ0ZXN0LWJhbGFuY2UiLCJpbnRlbnQiOiJjaGFyZ2UiLCJtZXRob2QiOiJpbmZsb3ciLCJyZWFsbSI6InNlbGxlci5leGFtcGxlIiwicmVxdWVzdCI6ImV5SmhiVzkxYm5RaU9pSXhNQzQxSWl3aVkzVnljbVZ1WTNraU9pSlZVMFJESWl3aWJXVjBhRzlrUkdWMFlXbHNjeUk2ZXlKeVlXbHNJam9pWW1Gc1lXNWpaU0o5TENKeVpXTnBjR2xsYm5RaU9pSXhNVEV4TVRFeE1TMHhNVEV4TFRReE1URXRPREV4TVMweE1URXhNVEV4TVRFeE1URWlmUSJ9LCJwYXlsb2FkIjp7ImFwcHJvdmFsSWQiOiIzMzMzMzMzMy0zMzMzLTQzMzMtODMzMy0zMzMzMzMzMzMzMzMiLCJ0cmFuc2FjdGlvbklkIjoiMjIyMjIyMjItMjIyMi00MjIyLTgyMjItMjIyMjIyMjIyMjIyIiwidHlwZSI6ImJhbGFuY2UifSwic291cmNlIjoiZGlkOmluZmxvdzo2NjY2NjY2Ni02NjY2LTQ2NjYtODY2Ni02NjY2NjY2NjY2NjYifQ"
+    },
+    "expect": {
+      "result": {
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "source": "did:inflow:66666666-6666-4666-8666-666666666666",
+        "payload": {
+          "type": "balance",
+          "transactionId": "22222222-2222-4222-8222-222222222222",
+          "approvalId": "33333333-3333-4333-8333-333333333333"
+        }
+      }
+    }
+  },
+  {
+    "id": "mpp.core.receipt-balance",
+    "suite": "mpp-core",
+    "operation": "mpp.core.decode-receipt",
+    "input": {
+      "value": "eyJjaGFsbGVuZ2VJZCI6InRlc3QtYmFsYW5jZSIsIm1ldGhvZCI6ImluZmxvdyIsInJlZmVyZW5jZSI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiIsInNldHRsZW1lbnQiOnsiYW1vdW50IjoiMTAuNSIsImN1cnJlbmN5IjoiVVNEQyJ9LCJzdGF0dXMiOiJzdWNjZXNzIiwidGltZXN0YW1wIjoiMjAyNi0wOS0wMVQxMjowMDowMFoifQ"
+    },
+    "expect": {
+      "result": {
+        "method": "inflow",
+        "reference": "22222222-2222-4222-8222-222222222222",
+        "status": "success",
+        "timestamp": "2026-09-01T12:00:00Z",
+        "challengeId": "test-balance",
+        "settlement": {
+          "amount": "10.5",
+          "currency": "USDC"
+        }
+      }
+    }
+  },
+  {
+    "id": "mpp.core.credential-instrument",
+    "suite": "mpp-core",
+    "operation": "mpp.core.decode-credential",
+    "input": {
+      "value": "eyJjaGFsbGVuZ2UiOnsiaWQiOiJ0ZXN0LWluc3RydW1lbnQiLCJpbnRlbnQiOiJjaGFyZ2UiLCJtZXRob2QiOiJpbmZsb3ciLCJyZWFsbSI6InNlbGxlci5leGFtcGxlIiwicmVxdWVzdCI6ImV5SmhiVzkxYm5RaU9pSXhNQzQxSWl3aVkzVnljbVZ1WTNraU9pSlZVMFFpTENKdFpYUm9iMlJFWlhSaGFXeHpJanA3SW1sdWMzUnlkVzFsYm5SSlpDSTZJalUxTlRVMU5UVTFMVFUxTlRVdE5EVTFOUzA0TlRVMUxUVTFOVFUxTlRVMU5UVTFOU0lzSW5KaGFXd2lPaUpwYm5OMGNuVnRaVzUwSW4wc0luSmxZMmx3YVdWdWRDSTZJakV4TVRFeE1URXhMVEV4TVRFdE5ERXhNUzA0TVRFeExURXhNVEV4TVRFeE1URXhNU0o5In0sInBheWxvYWQiOnsiYXBwcm92YWxJZCI6IjMzMzMzMzMzLTMzMzMtNDMzMy04MzMzLTMzMzMzMzMzMzMzMyIsInRyYW5zYWN0aW9uSWQiOiIyMjIyMjIyMi0yMjIyLTQyMjItODIyMi0yMjIyMjIyMjIyMjIiLCJ0eXBlIjoiYmFsYW5jZSJ9LCJzb3VyY2UiOiJkaWQ6aW5mbG93OjY2NjY2NjY2LTY2NjYtNDY2Ni04NjY2LTY2NjY2NjY2NjY2NiJ9"
+    },
+    "expect": {
+      "result": {
+        "challenge": {
+          "id": "test-instrument",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0QiLCJtZXRob2REZXRhaWxzIjp7Imluc3RydW1lbnRJZCI6IjU1NTU1NTU1LTU1NTUtNDU1NS04NTU1LTU1NTU1NTU1NTU1NSIsInJhaWwiOiJpbnN0cnVtZW50In0sInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSJ9"
+        },
+        "source": "did:inflow:66666666-6666-4666-8666-666666666666",
+        "payload": {
+          "type": "balance",
+          "transactionId": "22222222-2222-4222-8222-222222222222",
+          "approvalId": "33333333-3333-4333-8333-333333333333"
+        }
+      }
+    }
+  },
+  {
+    "id": "mpp.core.receipt-instrument",
+    "suite": "mpp-core",
+    "operation": "mpp.core.decode-receipt",
+    "input": {
+      "value": "eyJjaGFsbGVuZ2VJZCI6InRlc3QtaW5zdHJ1bWVudCIsIm1ldGhvZCI6ImluZmxvdyIsInJlZmVyZW5jZSI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiIsInNldHRsZW1lbnQiOnsiYW1vdW50IjoiMTAuNSIsImN1cnJlbmN5IjoiVVNEIn0sInN0YXR1cyI6InN1Y2Nlc3MiLCJ0aW1lc3RhbXAiOiIyMDI2LTA5LTAxVDEyOjAwOjAwWiJ9"
+    },
+    "expect": {
+      "result": {
+        "method": "inflow",
+        "reference": "22222222-2222-4222-8222-222222222222",
+        "status": "success",
+        "timestamp": "2026-09-01T12:00:00Z",
+        "challengeId": "test-instrument",
+        "settlement": {
+          "amount": "10.5",
+          "currency": "USD"
+        }
+      }
+    }
+  },
+  {
+    "id": "mpp.core.credential-subscription",
+    "suite": "mpp-core",
+    "operation": "mpp.core.decode-credential",
+    "input": {
+      "value": "eyJjaGFsbGVuZ2UiOnsiZXhwaXJlcyI6IjIwOTktMDEtMDFUMDA6MDA6MDBaIiwiaWQiOiJ0ZXN0LXN1YnNjcmlwdGlvbiIsImludGVudCI6InN1YnNjcmlwdGlvbiIsIm1ldGhvZCI6ImluZmxvdyIsInJlYWxtIjoic2VsbGVyLmV4YW1wbGUiLCJyZXF1ZXN0IjoiZXlKaGJXOTFiblFpT2lJMUxqQXdJaXdpWTNWeWNtVnVZM2tpT2lKVlUwUkRJaXdpWlhoMFpYSnVZV3hKWkNJNkluUmxjM1F0Y0d4aGJpSXNJbTFsZEdodlpFUmxkR0ZwYkhNaU9uc2ljbUZwYkNJNkltSmhiR0Z1WTJVaWZTd2ljR1Z5YVc5a1EyOTFiblFpT2pFc0luQmxjbWx2WkZWdWFYUWlPaUp0YjI1MGFDSXNJbkpsWTJsd2FXVnVkQ0k2SWpFeE1URXhNVEV4TFRFeE1URXROREV4TVMwNE1URXhMVEV4TVRFeE1URXhNVEV4TVNJc0luTjFZbk5qY21sd2RHbHZia1Y0Y0dseVpYTWlPaUl5TURrNUxUQXhMVEF4VkRBd09qQXdPakF3V2lKOSJ9LCJwYXlsb2FkIjp7ImFwcHJvdmFsSWQiOiIzMzMzMzMzMy0zMzMzLTQzMzMtODMzMy0zMzMzMzMzMzMzMzMiLCJzdWJzY3JpcHRpb25JZCI6IjQ0NDQ0NDQ0LTQ0NDQtNDQ0NC04NDQ0LTQ0NDQ0NDQ0NDQ0NCIsInRyYW5zYWN0aW9uSWQiOiIyMjIyMjIyMi0yMjIyLTQyMjItODIyMi0yMjIyMjIyMjIyMjIiLCJ0eXBlIjoiYmFsYW5jZSJ9LCJzb3VyY2UiOiJkaWQ6aW5mbG93OjY2NjY2NjY2LTY2NjYtNDY2Ni04NjY2LTY2NjY2NjY2NjY2NiJ9"
+    },
+    "expect": {
+      "result": {
+        "challenge": {
+          "id": "test-subscription",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "subscription",
+          "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+          "expires": "2099-01-01T00:00:00Z"
+        },
+        "source": "did:inflow:66666666-6666-4666-8666-666666666666",
+        "payload": {
+          "type": "balance",
+          "transactionId": "22222222-2222-4222-8222-222222222222",
+          "approvalId": "33333333-3333-4333-8333-333333333333",
+          "subscriptionId": "44444444-4444-4444-8444-444444444444"
+        }
+      }
+    }
+  },
+  {
+    "id": "mpp.core.receipt-subscription",
+    "suite": "mpp-core",
+    "operation": "mpp.core.decode-receipt",
+    "input": {
+      "value": "eyJjaGFsbGVuZ2VJZCI6InRlc3Qtc3Vic2NyaXB0aW9uIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZCI6ImluZmxvdyIsInJlZmVyZW5jZSI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiIsInNldHRsZW1lbnQiOnsiYW1vdW50IjoiNSIsImN1cnJlbmN5IjoiVVNEQyJ9LCJzdGF0dXMiOiJzdWNjZXNzIiwic3Vic2NyaXB0aW9uSWQiOiI0NDQ0NDQ0NC00NDQ0LTQ0NDQtODQ0NC00NDQ0NDQ0NDQ0NDQiLCJ0aW1lc3RhbXAiOiIyMDI2LTA5LTAxVDEyOjAwOjAwWiJ9"
+    },
+    "expect": {
+      "result": {
+        "method": "inflow",
+        "reference": "22222222-2222-4222-8222-222222222222",
+        "status": "success",
+        "timestamp": "2026-09-01T12:00:00Z",
+        "challengeId": "test-subscription",
+        "settlement": {
+          "amount": "5",
+          "currency": "USDC"
+        },
+        "subscriptionId": "44444444-4444-4444-8444-444444444444",
+        "externalId": "test-plan"
+      }
+    }
+  },
+  {
+    "id": "mpp.core.credential-tempo",
+    "suite": "mpp-core",
+    "operation": "mpp.core.decode-credential",
+    "input": {
+      "value": "eyJjaGFsbGVuZ2UiOnsiaWQiOiJ0ZXN0LXRlbXBvIiwiaW50ZW50IjoiY2hhcmdlIiwibWV0aG9kIjoidGVtcG8iLCJyZWFsbSI6InNlbGxlci5leGFtcGxlIiwicmVxdWVzdCI6ImV5SmhiVzkxYm5RaU9pSXhNRFV3TURBd01DSXNJbU4xY25KbGJtTjVJam9pTUhneU1HTXdNREF3TURBd01EQXdNREF3TURBd01EQXdNREF3TURBd01EQXdNREF3TURBd01EQXdJaXdpYldWMGFHOWtSR1YwWVdsc2N5STZleUpqYUdGcGJrbGtJam8wTWpFM0xDSm1aV1ZRWVhsbGNpSTZabUZzYzJVc0luTjFjSEJ2Y25SbFpFMXZaR1Z6SWpwYkluQjFiR3dpWFgwc0luSmxZMmx3YVdWdWRDSTZJakI0TVRFeE1URXhNVEV4TVRFeE1URXhNVEV4TVRFeE1URXhNVEV4TVRFeE1URXhNVEV4TVRFeE1TSjkifSwicGF5bG9hZCI6eyJzaWduYXR1cmUiOiIweGRlYWRiZWVmIiwidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiIsInR5cGUiOiJ0cmFuc2FjdGlvbiJ9LCJzb3VyY2UiOiJkaWQ6cGtoOmVpcDE1NTo0MjE3OjB4MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMiJ9"
+    },
+    "expect": {
+      "result": {
+        "challenge": {
+          "id": "test-tempo",
+          "realm": "seller.example",
+          "method": "tempo",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMDUwMDAwMCIsImN1cnJlbmN5IjoiMHgyMGMwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwibWV0aG9kRGV0YWlscyI6eyJjaGFpbklkIjo0MjE3LCJmZWVQYXllciI6ZmFsc2UsInN1cHBvcnRlZE1vZGVzIjpbInB1bGwiXX0sInJlY2lwaWVudCI6IjB4MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSJ9"
+        },
+        "source": "did:pkh:eip155:4217:0x2222222222222222222222222222222222222222",
+        "payload": {
+          "type": "transaction",
+          "signature": "0xdeadbeef",
+          "transactionId": "22222222-2222-4222-8222-222222222222"
+        }
+      }
+    }
+  },
+  {
+    "id": "mpp.core.receipt-tempo",
+    "suite": "mpp-core",
+    "operation": "mpp.core.decode-receipt",
+    "input": {
+      "value": "eyJjaGFsbGVuZ2VJZCI6InRlc3QtdGVtcG8iLCJtZXRob2QiOiJ0ZW1wbyIsInJlZmVyZW5jZSI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiIsInNldHRsZW1lbnQiOnsiYW1vdW50IjoiMTAuNSIsImN1cnJlbmN5IjoiVVNEQyJ9LCJzdGF0dXMiOiJzdWNjZXNzIiwidGltZXN0YW1wIjoiMjAyNi0wOS0wMVQxMjowMDowMFoifQ"
+    },
+    "expect": {
+      "result": {
+        "method": "tempo",
+        "reference": "22222222-2222-4222-8222-222222222222",
+        "status": "success",
+        "timestamp": "2026-09-01T12:00:00Z",
+        "challengeId": "test-tempo",
+        "settlement": {
+          "amount": "10.5",
+          "currency": "USDC"
+        }
+      }
+    }
+  },
+  {
+    "id": "mpp.core.credential-invalid-json",
+    "suite": "mpp-core",
+    "operation": "mpp.core.decode-credential",
+    "input": {
+      "value": "eyI"
+    },
+    "expect": {
+      "error": {
+        "code": "invalid-credential",
+        "message": "Invalid credential."
+      }
+    }
+  },
+  {
+    "id": "mpp.core.credential-wrong-type",
+    "suite": "mpp-core",
+    "operation": "mpp.core.decode-credential",
+    "input": {
+      "value": "W10"
+    },
+    "expect": {
+      "error": {
+        "code": "invalid-credential",
+        "message": "Invalid credential."
+      }
+    }
+  },
+  {
+    "id": "mpp.core.credential-missing-fields",
+    "suite": "mpp-core",
+    "operation": "mpp.core.decode-credential",
+    "input": {
+      "value": "e30"
+    },
+    "expect": {
+      "error": {
+        "code": "invalid-credential",
+        "message": "Invalid credential."
+      }
+    }
+  },
+  {
+    "id": "mpp.core.optional-fields",
+    "suite": "mpp-core",
+    "operation": "mpp.core.decode-credential",
+    "input": {
+      "value": "eyJjaGFsbGVuZ2UiOnsiZGVzY3JpcHRpb24iOiJTeW50aGV0aWMsIHF1b3RlZCBkZXNjcmlwdGlvbiIsImRpZ2VzdCI6InRlc3QtZGlnZXN0IiwiaWQiOiJ0ZXN0LWJhbGFuY2UiLCJpbnRlbnQiOiJjaGFyZ2UiLCJtZXRob2QiOiJpbmZsb3ciLCJvcGFxdWUiOiJleUp5YjNWMFpTSTZJblJsYzNRaWZRIiwicmVhbG0iOiJzZWxsZXIuZXhhbXBsZSIsInJlcXVlc3QiOiJleUpoYlc5MWJuUWlPaUl4TUM0MUlpd2lZM1Z5Y21WdVkza2lPaUpWVTBSRElpd2liV1YwYUc5a1JHVjBZV2xzY3lJNmV5SnlZV2xzSWpvaVltRnNZVzVqWlNKOUxDSnlaV05wY0dsbGJuUWlPaUl4TVRFeE1URXhNUzB4TVRFeExUUXhNVEV0T0RFeE1TMHhNVEV4TVRFeE1URXhNVEVpZlEifSwicGF5bG9hZCI6eyJhcHByb3ZhbElkIjoiMzMzMzMzMzMtMzMzMy00MzMzLTgzMzMtMzMzMzMzMzMzMzMzIiwiZXh0cmEiOnsidHJhY2UiOiJzeW50aGV0aWMifSwidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiIsInR5cGUiOiJiYWxhbmNlIn0sInNvdXJjZSI6ImRpZDppbmZsb3c6NjY2NjY2NjYtNjY2Ni00NjY2LTg2NjYtNjY2NjY2NjY2NjY2In0"
+    },
+    "expect": {
+      "result": {
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ",
+          "description": "Synthetic, quoted description",
+          "digest": "test-digest",
+          "opaque": "eyJyb3V0ZSI6InRlc3QifQ"
+        },
+        "source": "did:inflow:66666666-6666-4666-8666-666666666666",
+        "payload": {
+          "type": "balance",
+          "transactionId": "22222222-2222-4222-8222-222222222222",
+          "approvalId": "33333333-3333-4333-8333-333333333333",
+          "extra": {
+            "trace": "synthetic"
+          }
+        }
+      }
+    }
+  }
+]
