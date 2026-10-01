@@ -571,6 +571,127 @@ after the owner agrees: delegation persists even if the payment fails. The
 extension returns signed data; it does not broadcast a transaction. Availability
 depends on the InFlow environment's sponsorship endpoint and supported networks.
 
+## Accept x402 payments with FastAPI
+
+Create an InFlow **Seller** account and an API key in its dashboard:
+[Sandbox](https://sandbox.inflowpay.ai) for testing or
+[Production](https://app.inflowpay.ai) for live payments. Use the matching
+`environment` in `ClientOptions`.
+
+```shell
+pip install 'inflowpay[x402,fastapi]' uvicorn
+export INFLOW_API_KEY='your-seller-api-key'
+```
+
+`Seller` reads your configured wallets, assets, and payment methods and converts
+prices into upstream x402 route options. `Facilitator` sends verification and
+settlement requests to InFlow. The upstream FastAPI middleware challenges the
+buyer, verifies the payment before calling your handler, and settles after a
+successful handler response.
+
+```python
+import asyncio
+import os
+
+import uvicorn
+from fastapi import FastAPI
+from x402 import x402ResourceServer
+from x402.http.middleware.fastapi import payment_middleware
+from x402.http.types import RouteConfig
+
+from inflowpay import ClientOptions
+from inflowpay.x402.facilitator import Facilitator
+from inflowpay.x402.seller import Seller
+
+
+async def serve() -> None:
+    options = ClientOptions(environment="sandbox", api_key=os.environ["INFLOW_API_KEY"])
+    async with (
+        await Seller.create(options) as seller,
+        await Facilitator.create(options) as facilitator,
+    ):
+        resource_server = x402ResourceServer(facilitator)
+        for registration in await seller.scheme_registrations():
+            resource_server.register(registration["network"], registration["server"])
+
+        routes = {
+            "GET /report": RouteConfig(accepts=await seller.offers("$0.01")),
+        }
+        app = FastAPI()
+        app.middleware("http")(payment_middleware(routes, resource_server))
+
+        @app.get("/report")
+        async def report() -> dict[str, str]:
+            return {"report": "Your paid report"}
+
+        await uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=8000)).serve()
+
+
+asyncio.run(serve())
+```
+
+Both clients own their HTTP connections and close them when their context exits.
+`Seller.create()` requires an API key and preloads configuration and capabilities.
+Configuration reads are cached for one hour; `await seller.config(refresh=True)`
+forces a refresh. `await seller.get_supported(refresh=True)` refreshes the Seller's
+capability lookup, not a running Facilitator or resource server. Values returned
+by these methods can be modified without changing the client's cache.
+
+### Prices, payment methods, and metering
+
+`seller.offers()` accepts `"$0.01"`, `"0.01 USDC"`, or `"0.01"` with
+`currency="USDC"`. Dollar prices select all stablecoin currencies in your Seller
+configuration. An explicit `currency` overrides the currency in the price string.
+Conversion uses decimal digits rather than floating-point arithmetic and rejects
+prices that cannot be represented in an asset's smallest unit. Price strings
+allow up to eight fractional digits.
+
+Use `schemes=["balance"]` or `networks=["eip155:8453"]` to restrict offers.
+Both filters apply when supplied together. Routes default to fixed-price offers
+and a 300-second payment timeout; `max_timeout_seconds` changes the timeout.
+An empty offers list means the selected configuration and filters produced no
+payment option. Check it before exposing the route.
+
+Metered `upto` payments require `inflowpay[evm]` and explicit `schemes=["upto"]`
+on both `seller.offers()` and `seller.scheme_registrations()`. Your environment
+must advertise metered Permit2 support for the asset. The route price is the
+maximum authorized charge. In your FastAPI handler, call the upstream helper
+`set_settlement_overrides(response, {"amount": "250000"})` to settle the actual
+amount in atomic asset units. The buyer's signed maximum remains unchanged.
+Without an override, settlement uses the route's maximum amount.
+
+`await seller.route("0.01 USDC", schemes=["exact"], permit2=True)` selects
+compatible Permit2 offers and adds a sponsorship declaration only when the token
+and facilitator advertise support. It prefers EIP-2612 over InFlow EIP-7702.
+Install `inflowpay[evm]` for EIP-2612 declarations. Balance offers are unaffected
+by `permit2=True`; filter to `exact` for an on-chain-only route. InFlow-managed
+buyers cannot sign Permit2 payments; these offers require external wallets.
+
+### Settlement and framework behavior
+
+The facilitator preserves a valid buyer payment identifier or derives one from
+the signed payment material. Verification and settlement use the same identifier
+without modifying the caller's payload. HTTP 412 `permit2_allowance_required`
+is returned as an invalid verification result. Settlement retries only an HTTP
+409 `idempotency_pending` response, at most five attempts and at most five seconds
+between attempts. Other HTTP or transport failures are not retried automatically:
+the payment may already have completed. Cancelling the task stops pending waits.
+
+The upstream FastAPI middleware buffers the handler's successful response before
+settlement; it does not stream the response to the buyer during settlement. A
+rejected verification prevents the handler from running. A handler error prevents
+after-handler settlement; a settlement failure replaces the successful handler
+response with a payment failure. Avoid irreversible business side effects in a
+handler without your own reconciliation design. InFlow does not roll back the
+handler's work.
+
+The clients are framework-independent and do not import FastAPI. Use them with
+other upstream asynchronous adapters where appropriate. For anonymous external
+on-chain facilitation, explicitly use
+`await Facilitator.create(ClientOptions(environment="sandbox"), anonymous=True)`.
+Anonymous setup rejects credentials; Seller configuration and InFlow balance
+settlement require a Seller account.
+
 ## x402 facilitator capabilities
 
 Facilitator capabilities describe the payment schemes, networks, and extensions

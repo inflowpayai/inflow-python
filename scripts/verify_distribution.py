@@ -71,6 +71,8 @@ assert PaymentRequirements is UpstreamRequirements
 entry = payment_identifier_entry(declare_payment_identifier(), generate_payment_id())
 assert entry is not None and entry['info']['required'] is False
 from inflowpay.x402.buyer import Buyer
+from inflowpay.x402.facilitator import Facilitator
+from inflowpay.x402.seller import Seller
 from inflowpay import ClientOptions
 import asyncio
 import httpx
@@ -79,6 +81,20 @@ async def check_buyer():
     async with await Buyer.create(ClientOptions(transport=transport)) as buyer:
         assert (await buyer.get_supported()).kinds == []
 asyncio.run(check_buyer())
+async def check_seller():
+    config = {'sellerId': 'seller', 'assets': [], 'wallets': [],
+              'paymentMethods': [], 'supported': []}
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=
+        config if request.url.path.endswith('/config') else {'kinds': []}))
+    options = ClientOptions(api_key='test-key', transport=transport)
+    async with await Seller.create(options) as seller:
+        assert await seller.offers('$1') == []
+        assert await seller.scheme_registrations() == []
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json={'kinds': []}))
+    options = ClientOptions(transport=transport)
+    async with await Facilitator.create(options, anonymous=True) as facilitator:
+        assert facilitator.get_supported().kinds == []
+asyncio.run(check_seller())
 for name in ('mpp', 'mcp', 'web3', 'solana', 'fastapi', 'rfc8785'):
     assert util.find_spec(name) is None, name
 """
