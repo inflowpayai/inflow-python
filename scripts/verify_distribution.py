@@ -59,6 +59,20 @@ for name in ('x402', 'mcp', 'web3', 'solana', 'fastapi'):
     assert util.find_spec(name) is None, name
 """
 
+X402_CONSUMER = """
+from importlib import util
+from inflowpay.x402 import (
+    PaymentRequirements, declare_payment_identifier, generate_payment_id,
+    payment_identifier_entry,
+)
+from x402.schemas import PaymentRequirements as UpstreamRequirements
+assert PaymentRequirements is UpstreamRequirements
+entry = payment_identifier_entry(declare_payment_identifier(), generate_payment_id())
+assert entry is not None and entry['info']['required'] is False
+for name in ('mpp', 'mcp', 'web3', 'solana', 'fastapi', 'rfc8785'):
+    assert util.find_spec(name) is None, name
+"""
+
 
 def main() -> None:
     repository = Path(__file__).resolve().parents[1]
@@ -87,6 +101,18 @@ def main() -> None:
             ["uv", "pip", "install", "--python", str(python), str(wheels[0])], check=True
         )
         subprocess.run([str(python), "-I", "-c", CONSUMER], cwd=temporary, check=True)
+        x402_environment = temporary / "x402-venv"
+        subprocess.run(
+            ["uv", "venv", "--python", sys.executable, str(x402_environment)], check=True
+        )
+        x402_python = x402_environment / (
+            "Scripts/python.exe" if sys.platform == "win32" else "bin/python"
+        )
+        subprocess.run(
+            ["uv", "pip", "install", "--python", str(x402_python), f"{wheels[0]}[x402]"],
+            check=True,
+        )
+        subprocess.run([str(x402_python), "-I", "-c", X402_CONSUMER], cwd=temporary, check=True)
         subprocess.run(
             ["uv", "pip", "install", "--python", str(python), f"{wheels[0]}[mpp]"], check=True
         )
