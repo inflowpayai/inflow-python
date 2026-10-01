@@ -1,0 +1,1898 @@
+{
+  "source": "inflow-specs 3bcc2a099ba5f9d9fecb7154a952500336d113c8 fixtures/mpp.mjs",
+  "cases": [
+    {
+      "id": "mpp.buyer.ready-balance",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {}
+      },
+      "expect": {
+        "result": {
+          "challenge": {
+            "id": "test-balance",
+            "realm": "seller.example",
+            "method": "inflow",
+            "intent": "charge",
+            "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+          },
+          "source": "did:inflow:66666666-6666-4666-8666-666666666666",
+          "payload": {
+            "type": "balance",
+            "transactionId": "22222222-2222-4222-8222-222222222222",
+            "approvalId": "33333333-3333-4333-8333-333333333333"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "ready",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "credential": "eyJjaGFsbGVuZ2UiOnsiaWQiOiJ0ZXN0LWJhbGFuY2UiLCJpbnRlbnQiOiJjaGFyZ2UiLCJtZXRob2QiOiJpbmZsb3ciLCJyZWFsbSI6InNlbGxlci5leGFtcGxlIiwicmVxdWVzdCI6ImV5SmhiVzkxYm5RaU9pSXhNQzQxSWl3aVkzVnljbVZ1WTNraU9pSlZVMFJESWl3aWJXVjBhRzlrUkdWMFlXbHNjeUk2ZXlKeVlXbHNJam9pWW1Gc1lXNWpaU0o5TENKeVpXTnBjR2xsYm5RaU9pSXhNVEV4TVRFeE1TMHhNVEV4TFRReE1URXRPREV4TVMweE1URXhNVEV4TVRFeE1URWlmUSJ9LCJwYXlsb2FkIjp7ImFwcHJvdmFsSWQiOiIzMzMzMzMzMy0zMzMzLTQzMzMtODMzMy0zMzMzMzMzMzMzMzMiLCJ0cmFuc2FjdGlvbklkIjoiMjIyMjIyMjItMjIyMi00MjIyLTgyMjItMjIyMjIyMjIyMjIyIiwidHlwZSI6ImJhbGFuY2UifSwic291cmNlIjoiZGlkOmluZmxvdzo2NjY2NjY2Ni02NjY2LTQ2NjYtODY2Ni02NjY2NjY2NjY2NjYifQ"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.pending-balance",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {}
+      },
+      "expect": {
+        "result": {
+          "challenge": {
+            "id": "test-balance",
+            "realm": "seller.example",
+            "method": "inflow",
+            "intent": "charge",
+            "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+          },
+          "source": "did:inflow:66666666-6666-4666-8666-666666666666",
+          "payload": {
+            "type": "balance",
+            "transactionId": "22222222-2222-4222-8222-222222222222",
+            "approvalId": "33333333-3333-4333-8333-333333333333"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "ready",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "credential": "eyJjaGFsbGVuZ2UiOnsiaWQiOiJ0ZXN0LWJhbGFuY2UiLCJpbnRlbnQiOiJjaGFyZ2UiLCJtZXRob2QiOiJpbmZsb3ciLCJyZWFsbSI6InNlbGxlci5leGFtcGxlIiwicmVxdWVzdCI6ImV5SmhiVzkxYm5RaU9pSXhNQzQxSWl3aVkzVnljbVZ1WTNraU9pSlZVMFJESWl3aWJXVjBhRzlrUkdWMFlXbHNjeUk2ZXlKeVlXbHNJam9pWW1Gc1lXNWpaU0o5TENKeVpXTnBjR2xsYm5RaU9pSXhNVEV4TVRFeE1TMHhNVEV4TFRReE1URXRPREV4TVMweE1URXhNVEV4TVRFeE1URWlmUSJ9LCJwYXlsb2FkIjp7ImFwcHJvdmFsSWQiOiIzMzMzMzMzMy0zMzMzLTQzMzMtODMzMy0zMzMzMzMzMzMzMzMiLCJ0cmFuc2FjdGlvbklkIjoiMjIyMjIyMjItMjIyMi00MjIyLTgyMjItMjIyMjIyMjIyMjIyIiwidHlwZSI6ImJhbGFuY2UifSwic291cmNlIjoiZGlkOmluZmxvdzo2NjY2NjY2Ni02NjY2LTQ2NjYtODY2Ni02NjY2NjY2NjY2NjYifQ"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.ready-instrument",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-instrument",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0QiLCJtZXRob2REZXRhaWxzIjp7Imluc3RydW1lbnRJZCI6IjU1NTU1NTU1LTU1NTUtNDU1NS04NTU1LTU1NTU1NTU1NTU1NSIsInJhaWwiOiJpbnN0cnVtZW50In0sInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSJ9"
+        },
+        "context": {
+          "instrumentId": "55555555-5555-4555-8555-555555555555"
+        }
+      },
+      "expect": {
+        "result": {
+          "challenge": {
+            "id": "test-instrument",
+            "realm": "seller.example",
+            "method": "inflow",
+            "intent": "charge",
+            "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0QiLCJtZXRob2REZXRhaWxzIjp7Imluc3RydW1lbnRJZCI6IjU1NTU1NTU1LTU1NTUtNDU1NS04NTU1LTU1NTU1NTU1NTU1NSIsInJhaWwiOiJpbnN0cnVtZW50In0sInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSJ9"
+          },
+          "source": "did:inflow:66666666-6666-4666-8666-666666666666",
+          "payload": {
+            "type": "balance",
+            "transactionId": "22222222-2222-4222-8222-222222222222",
+            "approvalId": "33333333-3333-4333-8333-333333333333"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-instrument",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0QiLCJtZXRob2REZXRhaWxzIjp7Imluc3RydW1lbnRJZCI6IjU1NTU1NTU1LTU1NTUtNDU1NS04NTU1LTU1NTU1NTU1NTU1NSIsInJhaWwiOiJpbnN0cnVtZW50In0sInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSJ9"
+                },
+                "options": {
+                  "instrumentId": "55555555-5555-4555-8555-555555555555"
+                }
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "ready",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "credential": "eyJjaGFsbGVuZ2UiOnsiaWQiOiJ0ZXN0LWluc3RydW1lbnQiLCJpbnRlbnQiOiJjaGFyZ2UiLCJtZXRob2QiOiJpbmZsb3ciLCJyZWFsbSI6InNlbGxlci5leGFtcGxlIiwicmVxdWVzdCI6ImV5SmhiVzkxYm5RaU9pSXhNQzQxSWl3aVkzVnljbVZ1WTNraU9pSlZVMFFpTENKdFpYUm9iMlJFWlhSaGFXeHpJanA3SW1sdWMzUnlkVzFsYm5SSlpDSTZJalUxTlRVMU5UVTFMVFUxTlRVdE5EVTFOUzA0TlRVMUxUVTFOVFUxTlRVMU5UVTFOU0lzSW5KaGFXd2lPaUpwYm5OMGNuVnRaVzUwSW4wc0luSmxZMmx3YVdWdWRDSTZJakV4TVRFeE1URXhMVEV4TVRFdE5ERXhNUzA0TVRFeExURXhNVEV4TVRFeE1URXhNU0o5In0sInBheWxvYWQiOnsiYXBwcm92YWxJZCI6IjMzMzMzMzMzLTMzMzMtNDMzMy04MzMzLTMzMzMzMzMzMzMzMyIsInRyYW5zYWN0aW9uSWQiOiIyMjIyMjIyMi0yMjIyLTQyMjItODIyMi0yMjIyMjIyMjIyMjIiLCJ0eXBlIjoiYmFsYW5jZSJ9LCJzb3VyY2UiOiJkaWQ6aW5mbG93OjY2NjY2NjY2LTY2NjYtNDY2Ni04NjY2LTY2NjY2NjY2NjY2NiJ9"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.pending-instrument",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-instrument",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0QiLCJtZXRob2REZXRhaWxzIjp7Imluc3RydW1lbnRJZCI6IjU1NTU1NTU1LTU1NTUtNDU1NS04NTU1LTU1NTU1NTU1NTU1NSIsInJhaWwiOiJpbnN0cnVtZW50In0sInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSJ9"
+        },
+        "context": {
+          "instrumentId": "55555555-5555-4555-8555-555555555555"
+        }
+      },
+      "expect": {
+        "result": {
+          "challenge": {
+            "id": "test-instrument",
+            "realm": "seller.example",
+            "method": "inflow",
+            "intent": "charge",
+            "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0QiLCJtZXRob2REZXRhaWxzIjp7Imluc3RydW1lbnRJZCI6IjU1NTU1NTU1LTU1NTUtNDU1NS04NTU1LTU1NTU1NTU1NTU1NSIsInJhaWwiOiJpbnN0cnVtZW50In0sInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSJ9"
+          },
+          "source": "did:inflow:66666666-6666-4666-8666-666666666666",
+          "payload": {
+            "type": "balance",
+            "transactionId": "22222222-2222-4222-8222-222222222222",
+            "approvalId": "33333333-3333-4333-8333-333333333333"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-instrument",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0QiLCJtZXRob2REZXRhaWxzIjp7Imluc3RydW1lbnRJZCI6IjU1NTU1NTU1LTU1NTUtNDU1NS04NTU1LTU1NTU1NTU1NTU1NSIsInJhaWwiOiJpbnN0cnVtZW50In0sInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSJ9"
+                },
+                "options": {
+                  "instrumentId": "55555555-5555-4555-8555-555555555555"
+                }
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "ready",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "credential": "eyJjaGFsbGVuZ2UiOnsiaWQiOiJ0ZXN0LWluc3RydW1lbnQiLCJpbnRlbnQiOiJjaGFyZ2UiLCJtZXRob2QiOiJpbmZsb3ciLCJyZWFsbSI6InNlbGxlci5leGFtcGxlIiwicmVxdWVzdCI6ImV5SmhiVzkxYm5RaU9pSXhNQzQxSWl3aVkzVnljbVZ1WTNraU9pSlZVMFFpTENKdFpYUm9iMlJFWlhSaGFXeHpJanA3SW1sdWMzUnlkVzFsYm5SSlpDSTZJalUxTlRVMU5UVTFMVFUxTlRVdE5EVTFOUzA0TlRVMUxUVTFOVFUxTlRVMU5UVTFOU0lzSW5KaGFXd2lPaUpwYm5OMGNuVnRaVzUwSW4wc0luSmxZMmx3YVdWdWRDSTZJakV4TVRFeE1URXhMVEV4TVRFdE5ERXhNUzA0TVRFeExURXhNVEV4TVRFeE1URXhNU0o5In0sInBheWxvYWQiOnsiYXBwcm92YWxJZCI6IjMzMzMzMzMzLTMzMzMtNDMzMy04MzMzLTMzMzMzMzMzMzMzMyIsInRyYW5zYWN0aW9uSWQiOiIyMjIyMjIyMi0yMjIyLTQyMjItODIyMi0yMjIyMjIyMjIyMjIiLCJ0eXBlIjoiYmFsYW5jZSJ9LCJzb3VyY2UiOiJkaWQ6aW5mbG93OjY2NjY2NjY2LTY2NjYtNDY2Ni04NjY2LTY2NjY2NjY2NjY2NiJ9"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.ready-subscription",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-subscription",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "subscription",
+          "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+          "expires": "2099-01-01T00:00:00Z"
+        },
+        "context": {}
+      },
+      "expect": {
+        "result": {
+          "challenge": {
+            "id": "test-subscription",
+            "realm": "seller.example",
+            "method": "inflow",
+            "intent": "subscription",
+            "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+            "expires": "2099-01-01T00:00:00Z"
+          },
+          "source": "did:inflow:66666666-6666-4666-8666-666666666666",
+          "payload": {
+            "type": "balance",
+            "transactionId": "22222222-2222-4222-8222-222222222222",
+            "approvalId": "33333333-3333-4333-8333-333333333333",
+            "subscriptionId": "44444444-4444-4444-8444-444444444444"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-subscription",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "subscription",
+                  "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+                  "expires": "2099-01-01T00:00:00Z"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "ready",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "credential": "eyJjaGFsbGVuZ2UiOnsiZXhwaXJlcyI6IjIwOTktMDEtMDFUMDA6MDA6MDBaIiwiaWQiOiJ0ZXN0LXN1YnNjcmlwdGlvbiIsImludGVudCI6InN1YnNjcmlwdGlvbiIsIm1ldGhvZCI6ImluZmxvdyIsInJlYWxtIjoic2VsbGVyLmV4YW1wbGUiLCJyZXF1ZXN0IjoiZXlKaGJXOTFiblFpT2lJMUxqQXdJaXdpWTNWeWNtVnVZM2tpT2lKVlUwUkRJaXdpWlhoMFpYSnVZV3hKWkNJNkluUmxjM1F0Y0d4aGJpSXNJbTFsZEdodlpFUmxkR0ZwYkhNaU9uc2ljbUZwYkNJNkltSmhiR0Z1WTJVaWZTd2ljR1Z5YVc5a1EyOTFiblFpT2pFc0luQmxjbWx2WkZWdWFYUWlPaUp0YjI1MGFDSXNJbkpsWTJsd2FXVnVkQ0k2SWpFeE1URXhNVEV4TFRFeE1URXROREV4TVMwNE1URXhMVEV4TVRFeE1URXhNVEV4TVNJc0luTjFZbk5qY21sd2RHbHZia1Y0Y0dseVpYTWlPaUl5TURrNUxUQXhMVEF4VkRBd09qQXdPakF3V2lKOSJ9LCJwYXlsb2FkIjp7ImFwcHJvdmFsSWQiOiIzMzMzMzMzMy0zMzMzLTQzMzMtODMzMy0zMzMzMzMzMzMzMzMiLCJzdWJzY3JpcHRpb25JZCI6IjQ0NDQ0NDQ0LTQ0NDQtNDQ0NC04NDQ0LTQ0NDQ0NDQ0NDQ0NCIsInRyYW5zYWN0aW9uSWQiOiIyMjIyMjIyMi0yMjIyLTQyMjItODIyMi0yMjIyMjIyMjIyMjIiLCJ0eXBlIjoiYmFsYW5jZSJ9LCJzb3VyY2UiOiJkaWQ6aW5mbG93OjY2NjY2NjY2LTY2NjYtNDY2Ni04NjY2LTY2NjY2NjY2NjY2NiJ9"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.pending-subscription",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-subscription",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "subscription",
+          "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+          "expires": "2099-01-01T00:00:00Z"
+        },
+        "context": {}
+      },
+      "expect": {
+        "result": {
+          "challenge": {
+            "id": "test-subscription",
+            "realm": "seller.example",
+            "method": "inflow",
+            "intent": "subscription",
+            "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+            "expires": "2099-01-01T00:00:00Z"
+          },
+          "source": "did:inflow:66666666-6666-4666-8666-666666666666",
+          "payload": {
+            "type": "balance",
+            "transactionId": "22222222-2222-4222-8222-222222222222",
+            "approvalId": "33333333-3333-4333-8333-333333333333",
+            "subscriptionId": "44444444-4444-4444-8444-444444444444"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-subscription",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "subscription",
+                  "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+                  "expires": "2099-01-01T00:00:00Z"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "ready",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "credential": "eyJjaGFsbGVuZ2UiOnsiZXhwaXJlcyI6IjIwOTktMDEtMDFUMDA6MDA6MDBaIiwiaWQiOiJ0ZXN0LXN1YnNjcmlwdGlvbiIsImludGVudCI6InN1YnNjcmlwdGlvbiIsIm1ldGhvZCI6ImluZmxvdyIsInJlYWxtIjoic2VsbGVyLmV4YW1wbGUiLCJyZXF1ZXN0IjoiZXlKaGJXOTFiblFpT2lJMUxqQXdJaXdpWTNWeWNtVnVZM2tpT2lKVlUwUkRJaXdpWlhoMFpYSnVZV3hKWkNJNkluUmxjM1F0Y0d4aGJpSXNJbTFsZEdodlpFUmxkR0ZwYkhNaU9uc2ljbUZwYkNJNkltSmhiR0Z1WTJVaWZTd2ljR1Z5YVc5a1EyOTFiblFpT2pFc0luQmxjbWx2WkZWdWFYUWlPaUp0YjI1MGFDSXNJbkpsWTJsd2FXVnVkQ0k2SWpFeE1URXhNVEV4TFRFeE1URXROREV4TVMwNE1URXhMVEV4TVRFeE1URXhNVEV4TVNJc0luTjFZbk5qY21sd2RHbHZia1Y0Y0dseVpYTWlPaUl5TURrNUxUQXhMVEF4VkRBd09qQXdPakF3V2lKOSJ9LCJwYXlsb2FkIjp7ImFwcHJvdmFsSWQiOiIzMzMzMzMzMy0zMzMzLTQzMzMtODMzMy0zMzMzMzMzMzMzMzMiLCJzdWJzY3JpcHRpb25JZCI6IjQ0NDQ0NDQ0LTQ0NDQtNDQ0NC04NDQ0LTQ0NDQ0NDQ0NDQ0NCIsInRyYW5zYWN0aW9uSWQiOiIyMjIyMjIyMi0yMjIyLTQyMjItODIyMi0yMjIyMjIyMjIyMjIiLCJ0eXBlIjoiYmFsYW5jZSJ9LCJzb3VyY2UiOiJkaWQ6aW5mbG93OjY2NjY2NjY2LTY2NjYtNDY2Ni04NjY2LTY2NjY2NjY2NjY2NiJ9"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.ready-tempo",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-tempo",
+          "realm": "seller.example",
+          "method": "tempo",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMDUwMDAwMCIsImN1cnJlbmN5IjoiMHgyMGMwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwibWV0aG9kRGV0YWlscyI6eyJjaGFpbklkIjo0MjE3LCJmZWVQYXllciI6ZmFsc2UsInN1cHBvcnRlZE1vZGVzIjpbInB1bGwiXX0sInJlY2lwaWVudCI6IjB4MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSJ9"
+        },
+        "context": {}
+      },
+      "expect": {
+        "result": {
+          "challenge": {
+            "id": "test-tempo",
+            "realm": "seller.example",
+            "method": "tempo",
+            "intent": "charge",
+            "request": "eyJhbW91bnQiOiIxMDUwMDAwMCIsImN1cnJlbmN5IjoiMHgyMGMwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwibWV0aG9kRGV0YWlscyI6eyJjaGFpbklkIjo0MjE3LCJmZWVQYXllciI6ZmFsc2UsInN1cHBvcnRlZE1vZGVzIjpbInB1bGwiXX0sInJlY2lwaWVudCI6IjB4MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSJ9"
+          },
+          "source": "did:pkh:eip155:4217:0x2222222222222222222222222222222222222222",
+          "payload": {
+            "type": "transaction",
+            "signature": "0xdeadbeef",
+            "transactionId": "22222222-2222-4222-8222-222222222222"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-tempo",
+                  "realm": "seller.example",
+                  "method": "tempo",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMDUwMDAwMCIsImN1cnJlbmN5IjoiMHgyMGMwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwibWV0aG9kRGV0YWlscyI6eyJjaGFpbklkIjo0MjE3LCJmZWVQYXllciI6ZmFsc2UsInN1cHBvcnRlZE1vZGVzIjpbInB1bGwiXX0sInJlY2lwaWVudCI6IjB4MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSJ9"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "ready",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "credential": "eyJjaGFsbGVuZ2UiOnsiaWQiOiJ0ZXN0LXRlbXBvIiwiaW50ZW50IjoiY2hhcmdlIiwibWV0aG9kIjoidGVtcG8iLCJyZWFsbSI6InNlbGxlci5leGFtcGxlIiwicmVxdWVzdCI6ImV5SmhiVzkxYm5RaU9pSXhNRFV3TURBd01DSXNJbU4xY25KbGJtTjVJam9pTUhneU1HTXdNREF3TURBd01EQXdNREF3TURBd01EQXdNREF3TURBd01EQXdNREF3TURBd01EQXdJaXdpYldWMGFHOWtSR1YwWVdsc2N5STZleUpqYUdGcGJrbGtJam8wTWpFM0xDSm1aV1ZRWVhsbGNpSTZabUZzYzJVc0luTjFjSEJ2Y25SbFpFMXZaR1Z6SWpwYkluQjFiR3dpWFgwc0luSmxZMmx3YVdWdWRDSTZJakI0TVRFeE1URXhNVEV4TVRFeE1URXhNVEV4TVRFeE1URXhNVEV4TVRFeE1URXhNVEV4TVRFeE1TSjkifSwicGF5bG9hZCI6eyJzaWduYXR1cmUiOiIweGRlYWRiZWVmIiwidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiIsInR5cGUiOiJ0cmFuc2FjdGlvbiJ9LCJzb3VyY2UiOiJkaWQ6cGtoOmVpcDE1NTo0MjE3OjB4MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMiJ9"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.pending-tempo",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-tempo",
+          "realm": "seller.example",
+          "method": "tempo",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMDUwMDAwMCIsImN1cnJlbmN5IjoiMHgyMGMwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwibWV0aG9kRGV0YWlscyI6eyJjaGFpbklkIjo0MjE3LCJmZWVQYXllciI6ZmFsc2UsInN1cHBvcnRlZE1vZGVzIjpbInB1bGwiXX0sInJlY2lwaWVudCI6IjB4MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSJ9"
+        },
+        "context": {}
+      },
+      "expect": {
+        "result": {
+          "challenge": {
+            "id": "test-tempo",
+            "realm": "seller.example",
+            "method": "tempo",
+            "intent": "charge",
+            "request": "eyJhbW91bnQiOiIxMDUwMDAwMCIsImN1cnJlbmN5IjoiMHgyMGMwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwibWV0aG9kRGV0YWlscyI6eyJjaGFpbklkIjo0MjE3LCJmZWVQYXllciI6ZmFsc2UsInN1cHBvcnRlZE1vZGVzIjpbInB1bGwiXX0sInJlY2lwaWVudCI6IjB4MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSJ9"
+          },
+          "source": "did:pkh:eip155:4217:0x2222222222222222222222222222222222222222",
+          "payload": {
+            "type": "transaction",
+            "signature": "0xdeadbeef",
+            "transactionId": "22222222-2222-4222-8222-222222222222"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-tempo",
+                  "realm": "seller.example",
+                  "method": "tempo",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMDUwMDAwMCIsImN1cnJlbmN5IjoiMHgyMGMwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwibWV0aG9kRGV0YWlscyI6eyJjaGFpbklkIjo0MjE3LCJmZWVQYXllciI6ZmFsc2UsInN1cHBvcnRlZE1vZGVzIjpbInB1bGwiXX0sInJlY2lwaWVudCI6IjB4MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSJ9"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "ready",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "credential": "eyJjaGFsbGVuZ2UiOnsiaWQiOiJ0ZXN0LXRlbXBvIiwiaW50ZW50IjoiY2hhcmdlIiwibWV0aG9kIjoidGVtcG8iLCJyZWFsbSI6InNlbGxlci5leGFtcGxlIiwicmVxdWVzdCI6ImV5SmhiVzkxYm5RaU9pSXhNRFV3TURBd01DSXNJbU4xY25KbGJtTjVJam9pTUhneU1HTXdNREF3TURBd01EQXdNREF3TURBd01EQXdNREF3TURBd01EQXdNREF3TURBd01EQXdJaXdpYldWMGFHOWtSR1YwWVdsc2N5STZleUpqYUdGcGJrbGtJam8wTWpFM0xDSm1aV1ZRWVhsbGNpSTZabUZzYzJVc0luTjFjSEJ2Y25SbFpFMXZaR1Z6SWpwYkluQjFiR3dpWFgwc0luSmxZMmx3YVdWdWRDSTZJakI0TVRFeE1URXhNVEV4TVRFeE1URXhNVEV4TVRFeE1URXhNVEV4TVRFeE1URXhNVEV4TVRFeE1TSjkifSwicGF5bG9hZCI6eyJzaWduYXR1cmUiOiIweGRlYWRiZWVmIiwidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiIsInR5cGUiOiJ0cmFuc2FjdGlvbiJ9LCJzb3VyY2UiOiJkaWQ6cGtoOmVpcDE1NTo0MjE3OjB4MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMiJ9"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.subscription-access",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-subscription",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "subscription",
+          "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+          "expires": "2099-01-01T00:00:00Z"
+        },
+        "context": {
+          "subscriptionId": "44444444-4444-4444-8444-444444444444"
+        }
+      },
+      "expect": {
+        "result": {
+          "challenge": {
+            "id": "test-subscription",
+            "realm": "seller.example",
+            "method": "inflow",
+            "intent": "subscription",
+            "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+            "expires": "2099-01-01T00:00:00Z"
+          },
+          "source": "did:inflow:66666666-6666-4666-8666-666666666666",
+          "payload": {
+            "authorizationId": "77777777-7777-4777-8777-777777777777",
+            "authorizationExpires": "2099-01-01T00:00:00Z",
+            "authorizationSignature": "test-only-authorization-signature",
+            "subscriptionId": "44444444-4444-4444-8444-444444444444",
+            "transactionId": "22222222-2222-4222-8222-222222222222"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/subscriptions/44444444-4444-4444-8444-444444444444/authorize",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-subscription",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "subscription",
+                  "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+                  "expires": "2099-01-01T00:00:00Z"
+                }
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "credential": "eyJjaGFsbGVuZ2UiOnsiZXhwaXJlcyI6IjIwOTktMDEtMDFUMDA6MDA6MDBaIiwiaWQiOiJ0ZXN0LXN1YnNjcmlwdGlvbiIsImludGVudCI6InN1YnNjcmlwdGlvbiIsIm1ldGhvZCI6ImluZmxvdyIsInJlYWxtIjoic2VsbGVyLmV4YW1wbGUiLCJyZXF1ZXN0IjoiZXlKaGJXOTFiblFpT2lJMUxqQXdJaXdpWTNWeWNtVnVZM2tpT2lKVlUwUkRJaXdpWlhoMFpYSnVZV3hKWkNJNkluUmxjM1F0Y0d4aGJpSXNJbTFsZEdodlpFUmxkR0ZwYkhNaU9uc2ljbUZwYkNJNkltSmhiR0Z1WTJVaWZTd2ljR1Z5YVc5a1EyOTFiblFpT2pFc0luQmxjbWx2WkZWdWFYUWlPaUp0YjI1MGFDSXNJbkpsWTJsd2FXVnVkQ0k2SWpFeE1URXhNVEV4TFRFeE1URXROREV4TVMwNE1URXhMVEV4TVRFeE1URXhNVEV4TVNJc0luTjFZbk5qY21sd2RHbHZia1Y0Y0dseVpYTWlPaUl5TURrNUxUQXhMVEF4VkRBd09qQXdPakF3V2lKOSJ9LCJwYXlsb2FkIjp7ImF1dGhvcml6YXRpb25FeHBpcmVzIjoiMjA5OS0wMS0wMVQwMDowMDowMFoiLCJhdXRob3JpemF0aW9uSWQiOiI3Nzc3Nzc3Ny03Nzc3LTQ3NzctODc3Ny03Nzc3Nzc3Nzc3NzciLCJhdXRob3JpemF0aW9uU2lnbmF0dXJlIjoidGVzdC1vbmx5LWF1dGhvcml6YXRpb24tc2lnbmF0dXJlIiwic3Vic2NyaXB0aW9uSWQiOiI0NDQ0NDQ0NC00NDQ0LTQ0NDQtODQ0NC00NDQ0NDQ0NDQ0NDQiLCJ0cmFuc2FjdGlvbklkIjoiMjIyMjIyMjItMjIyMi00MjIyLTgyMjItMjIyMjIyMjIyMjIyIn0sInNvdXJjZSI6ImRpZDppbmZsb3c6NjY2NjY2NjYtNjY2Ni00NjY2LTg2NjYtNjY2NjY2NjY2NjY2In0",
+                "expires": "2099-01-01T00:00:00Z"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.subscription-access-denied",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-subscription",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "subscription",
+          "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+          "expires": "2099-01-01T00:00:00Z"
+        },
+        "context": {
+          "subscriptionId": "44444444-4444-4444-8444-444444444444"
+        }
+      },
+      "expect": {
+        "error": {
+          "code": "payment-failed",
+          "message": "Payment failed.",
+          "details": {
+            "problem": {
+              "type": "https://paymentauth.org/problems/verification-failed",
+              "title": "Payment Verification Failed",
+              "status": 402,
+              "detail": "Synthetic credential rejected.",
+              "extensions": {
+                "payment_reference": "test-only-rejected-payment"
+              }
+            }
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/subscriptions/44444444-4444-4444-8444-444444444444/authorize",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-subscription",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "subscription",
+                  "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+                  "expires": "2099-01-01T00:00:00Z"
+                }
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "problem": {
+                  "type": "https://paymentauth.org/problems/verification-failed",
+                  "title": "Payment Verification Failed",
+                  "status": 402,
+                  "detail": "Synthetic credential rejected.",
+                  "extensions": {
+                    "payment_reference": "test-only-rejected-payment"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.failed",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {}
+      },
+      "expect": {
+        "error": {
+          "code": "payment-failed",
+          "message": "Payment failed.",
+          "details": {
+            "problem": {
+              "type": "https://paymentauth.org/problems/verification-failed",
+              "title": "Payment Verification Failed",
+              "status": 402,
+              "detail": "Synthetic credential rejected.",
+              "extensions": {
+                "payment_reference": "test-only-rejected-payment"
+              }
+            }
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "failed",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "problem": {
+                  "type": "https://paymentauth.org/problems/verification-failed",
+                  "title": "Payment Verification Failed",
+                  "status": 402,
+                  "detail": "Synthetic credential rejected.",
+                  "extensions": {
+                    "payment_reference": "test-only-rejected-payment"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.pending-failed",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {}
+      },
+      "expect": {
+        "error": {
+          "code": "payment-failed",
+          "message": "Payment failed.",
+          "details": {
+            "problem": {
+              "type": "https://paymentauth.org/problems/verification-failed",
+              "title": "Payment Verification Failed",
+              "status": 402,
+              "detail": "Synthetic credential rejected.",
+              "extensions": {
+                "payment_reference": "test-only-rejected-payment"
+              }
+            }
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "failed",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "problem": {
+                  "type": "https://paymentauth.org/problems/verification-failed",
+                  "title": "Payment Verification Failed",
+                  "status": 402,
+                  "detail": "Synthetic credential rejected.",
+                  "extensions": {
+                    "payment_reference": "test-only-rejected-payment"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/approvals/33333333-3333-4333-8333-333333333333/cancel",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 204
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.expired",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {}
+      },
+      "expect": {
+        "error": {
+          "code": "payment-expired",
+          "message": "Payment expired.",
+          "details": {
+            "transaction_id": "22222222-2222-4222-8222-222222222222"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "expired",
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.pending-expired",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {}
+      },
+      "expect": {
+        "error": {
+          "code": "payment-expired",
+          "message": "Payment expired.",
+          "details": {
+            "transaction_id": "22222222-2222-4222-8222-222222222222"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "expired",
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/approvals/33333333-3333-4333-8333-333333333333/cancel",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 204
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.missing-credential",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {}
+      },
+      "expect": {
+        "error": {
+          "code": "invalid-credential",
+          "message": "Invalid credential."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "ready",
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.pending-missing-credential",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {}
+      },
+      "expect": {
+        "error": {
+          "code": "invalid-credential",
+          "message": "Invalid credential."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "ready",
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/approvals/33333333-3333-4333-8333-333333333333/cancel",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 204
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.malformed-credential",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {}
+      },
+      "expect": {
+        "error": {
+          "code": "invalid-credential",
+          "message": "Invalid credential."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "ready",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "credential": "e30"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.pending-malformed-credential",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {}
+      },
+      "expect": {
+        "error": {
+          "code": "invalid-credential",
+          "message": "Invalid credential."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "ready",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "credential": "e30"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/approvals/33333333-3333-4333-8333-333333333333/cancel",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 204
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.cancel-failure-preserves-error",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {}
+      },
+      "expect": {
+        "error": {
+          "code": "payment-failed",
+          "message": "Payment failed.",
+          "details": {
+            "problem": {
+              "type": "https://paymentauth.org/problems/verification-failed",
+              "title": "Payment Verification Failed",
+              "status": 402,
+              "detail": "Synthetic credential rejected.",
+              "extensions": {
+                "payment_reference": "test-only-rejected-payment"
+              }
+            }
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "failed",
+                "problem": {
+                  "type": "https://paymentauth.org/problems/verification-failed",
+                  "title": "Payment Verification Failed",
+                  "status": 402,
+                  "detail": "Synthetic credential rejected.",
+                  "extensions": {
+                    "payment_reference": "test-only-rejected-payment"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/approvals/33333333-3333-4333-8333-333333333333/cancel",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 500
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.timeout",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {},
+        "timeout_ms": 1000
+      },
+      "expect": {
+        "error": {
+          "code": "payment-timeout",
+          "message": "Payment timed out.",
+          "details": {
+            "transaction_id": "22222222-2222-4222-8222-222222222222"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 60
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/approvals/33333333-3333-4333-8333-333333333333/cancel",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 204
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.timeout-during-poll",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {},
+        "timeout_ms": 500
+      },
+      "expect": {
+        "error": {
+          "code": "payment-timeout",
+          "message": "Payment timed out.",
+          "details": {
+            "transaction_id": "22222222-2222-4222-8222-222222222222"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 0
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "ready",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "credential": "eyJjaGFsbGVuZ2UiOnsiaWQiOiJ0ZXN0LWJhbGFuY2UiLCJpbnRlbnQiOiJjaGFyZ2UiLCJtZXRob2QiOiJpbmZsb3ciLCJyZWFsbSI6InNlbGxlci5leGFtcGxlIiwicmVxdWVzdCI6ImV5SmhiVzkxYm5RaU9pSXhNQzQxSWl3aVkzVnljbVZ1WTNraU9pSlZVMFJESWl3aWJXVjBhRzlrUkdWMFlXbHNjeUk2ZXlKeVlXbHNJam9pWW1Gc1lXNWpaU0o5TENKeVpXTnBjR2xsYm5RaU9pSXhNVEV4TVRFeE1TMHhNVEV4TFRReE1URXRPREV4TVMweE1URXhNVEV4TVRFeE1URWlmUSJ9LCJwYXlsb2FkIjp7ImFwcHJvdmFsSWQiOiIzMzMzMzMzMy0zMzMzLTQzMzMtODMzMy0zMzMzMzMzMzMzMzMiLCJ0cmFuc2FjdGlvbklkIjoiMjIyMjIyMjItMjIyMi00MjIyLTgyMjItMjIyMjIyMjIyMjIyIiwidHlwZSI6ImJhbGFuY2UifSwic291cmNlIjoiZGlkOmluZmxvdzo2NjY2NjY2Ni02NjY2LTQ2NjYtODY2Ni02NjY2NjY2NjY2NjYifQ"
+              },
+              "delay_ms": 1000
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/approvals/33333333-3333-4333-8333-333333333333/cancel",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 204
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.cancel",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.cancel",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {}
+      },
+      "expect": {
+        "error": {
+          "code": "payment-cancelled",
+          "message": "Payment cancelled."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "transactionId": "22222222-2222-4222-8222-222222222222",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "retryAfterSeconds": 60
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/approvals/33333333-3333-4333-8333-333333333333/cancel",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 204
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.subscription-missing-credential",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-subscription",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "subscription",
+          "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+          "expires": "2099-01-01T00:00:00Z"
+        },
+        "context": {
+          "subscriptionId": "44444444-4444-4444-8444-444444444444"
+        }
+      },
+      "expect": {
+        "error": {
+          "code": "invalid-credential",
+          "message": "Invalid credential."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/subscriptions/44444444-4444-4444-8444-444444444444/authorize",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-subscription",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "subscription",
+                  "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+                  "expires": "2099-01-01T00:00:00Z"
+                }
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.subscription-malformed-credential",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-subscription",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "subscription",
+          "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+          "expires": "2099-01-01T00:00:00Z"
+        },
+        "context": {
+          "subscriptionId": "44444444-4444-4444-8444-444444444444"
+        }
+      },
+      "expect": {
+        "error": {
+          "code": "invalid-credential",
+          "message": "Invalid credential."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/subscriptions/44444444-4444-4444-8444-444444444444/authorize",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-subscription",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "subscription",
+                  "request": "eyJhbW91bnQiOiI1LjAwIiwiY3VycmVuY3kiOiJVU0RDIiwiZXh0ZXJuYWxJZCI6InRlc3QtcGxhbiIsIm1ldGhvZERldGFpbHMiOnsicmFpbCI6ImJhbGFuY2UifSwicGVyaW9kQ291bnQiOjEsInBlcmlvZFVuaXQiOiJtb250aCIsInJlY2lwaWVudCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSIsInN1YnNjcmlwdGlvbkV4cGlyZXMiOiIyMDk5LTAxLTAxVDAwOjAwOjAwWiJ9",
+                  "expires": "2099-01-01T00:00:00Z"
+                }
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "credential": "e30"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mpp.buyer.pending-missing-transaction",
+      "suite": "mpp-buyer",
+      "operation": "mpp.buyer.fulfil",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "challenge": {
+          "id": "test-balance",
+          "realm": "seller.example",
+          "method": "inflow",
+          "intent": "charge",
+          "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+        },
+        "context": {}
+      },
+      "expect": {
+        "error": {
+          "code": "invalid-credential",
+          "message": "Invalid credential."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/mpp",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "challenge": {
+                  "id": "test-balance",
+                  "realm": "seller.example",
+                  "method": "inflow",
+                  "intent": "charge",
+                  "request": "eyJhbW91bnQiOiIxMC41IiwiY3VycmVuY3kiOiJVU0RDIiwibWV0aG9kRGV0YWlscyI6eyJyYWlsIjoiYmFsYW5jZSJ9LCJyZWNpcGllbnQiOiIxMTExMTExMS0xMTExLTQxMTEtODExMS0xMTExMTExMTExMTEifQ"
+                },
+                "options": {}
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "state": "pending",
+                "approvalId": "33333333-3333-4333-8333-333333333333"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/approvals/33333333-3333-4333-8333-333333333333/cancel",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 204
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

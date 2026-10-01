@@ -190,11 +190,14 @@ class Client:
         content: bytes | None,
         extra: dict[str, str],
     ) -> object:
+        await asyncio.sleep(0)
         token = self._options.api_key
         # Provider failures are application errors, not retryable transport failures.
         if self._options.access_token is not None:
             token = await self._options.access_token()
             _credential(token)
+            # A provider can request cancellation without yielding before it returns.
+            await asyncio.sleep(0)
         headers = httpx.Headers(extra)
         headers["Accept"] = "application/json"
         headers["User-Agent"] = "inflowpay (python)"
@@ -210,6 +213,10 @@ class Client:
         try:
             async with asyncio.timeout(self._options.timeout):
                 response = await self._http.send(request, follow_redirects=False)
+                task = asyncio.current_task()
+                assert task is not None
+                if task.cancelling():
+                    await asyncio.sleep(0)
         except (TimeoutError, httpx.TimeoutException):
             return InflowApiError(
                 "request timed out",
