@@ -2,6 +2,9 @@
 
 from importlib.metadata import version
 
+from .errors import InflowApiError
+from .options import ClientOptions
+
 __version__ = version("inflowpay")
 
-__all__ = ["__version__"]
+__all__ = ["ClientOptions", "InflowApiError", "__version__"]
