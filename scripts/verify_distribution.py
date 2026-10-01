@@ -24,6 +24,7 @@ from mpp.extensions.mcp import McpClient
 from x402.http.middleware.fastapi import payment_middleware
 from x402.mechanisms.evm.exact import ExactEvmClientScheme
 from x402.mechanisms.svm.exact import ExactSvmClientScheme
+from inflowpay.x402.eip7702 import SponsorshipExtension, SponsorshipSigner
 import x402.mcp
 """
 
@@ -69,6 +70,15 @@ from x402.schemas import PaymentRequirements as UpstreamRequirements
 assert PaymentRequirements is UpstreamRequirements
 entry = payment_identifier_entry(declare_payment_identifier(), generate_payment_id())
 assert entry is not None and entry['info']['required'] is False
+from inflowpay.x402.buyer import Buyer
+from inflowpay import ClientOptions
+import asyncio
+import httpx
+async def check_buyer():
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json={'kinds': []}))
+    async with await Buyer.create(ClientOptions(transport=transport)) as buyer:
+        assert (await buyer.get_supported()).kinds == []
+asyncio.run(check_buyer())
 for name in ('mpp', 'mcp', 'web3', 'solana', 'fastapi', 'rfc8785'):
     assert util.find_spec(name) is None, name
 """
