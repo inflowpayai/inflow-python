@@ -40,7 +40,12 @@ def validate_request(method: str, intent: str, value: object) -> WireObject:
             unit, count = request.get("periodUnit"), request.get("periodCount")
             if unit not in ("minute", "hour", "day", "week", "month", "quarter", "year"):
                 raise MppCodecError("Unsupported subscription period")
-            if type(count) is not int or not 1 <= count <= 9007199254740991:
+            if (
+                isinstance(count, bool)
+                or not isinstance(count, (int, float))
+                or not 1 <= count <= 9007199254740991
+                or count % 1 != 0
+            ):
                 raise MppCodecError("periodCount must be a positive safe integer")
             if unit == "minute" and count < 5:
                 raise MppCodecError("Minute subscriptions require periodCount of at least five")

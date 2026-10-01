@@ -66,6 +66,12 @@ def test_shared_core(case: dict[str, object]) -> None:
             execute()
     else:
         assert execute() == expected["result"]
+        if case["operation"] in (
+            "mpp.core.decode",
+            "mpp.core.decode-credential",
+            "mpp.core.decode-receipt",
+        ):
+            assert encode(expected["result"]) == data["value"]
 
 
 def test_canonical_wire() -> None:
@@ -157,6 +163,12 @@ def test_headers() -> None:
         "expires": "2099-01-01T00:00:00Z",
     }
     header = render_challenge_header(challenge)
+    assert header == (
+        'Payment id="test-id", realm="seller.example", method="inflow", intent="charge", '
+        'request="eyJhbW91bnQiOiIxIn0", expires="2099-01-01T00:00:00Z", '
+        r'description="Pay \"now\", then \\ later'
+        '\t", digest="sha-256=x", opaque="e30"'
+    )
     assert parse_challenge_headers(["", header + ", " + header]) == [challenge, challenge]
     assert parse_challenge_header(header + ', future="ignored" ') == challenge
     assert parse_challenge_header(
@@ -278,6 +290,63 @@ def test_optional_paths() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "field",
+    [
+        "id",
+        "realm",
+        "method",
+        "intent",
+        "request",
+        "expires",
+        "description",
+        "digest",
+        "opaque",
+        "header",
+    ],
+)
+@pytest.mark.parametrize(
+    "value", ['quoted "value" \\ path', "bad\rvalue", "bad\nvalue", "bad\x00value", "bad\x7fvalue"]
+)
+def test_header_field_boundaries(field: str, value: str) -> None:
+    challenge = {**CHALLENGE, field: value}
+    if value.startswith("bad"):
+        with pytest.raises(MppCodecError):
+            render_challenge_header(challenge)
+        with pytest.raises(MppCodecError):
+            header = render_challenge_header({**CHALLENGE, field: "placeholder"})
+            parse_challenge_header(header.replace('"placeholder"', f'"{value}"'))
+    else:
+        assert parse_challenge_header(render_challenge_header(challenge)) == challenge
+
+
+@pytest.mark.parametrize("kind", ["hash", "transaction", "proof"])
+@pytest.mark.parametrize("invalid", [None, "", "not-hex", 1])
+def test_tempo_proof_requires_its_own_field(kind: str, invalid: object) -> None:
+    required = "hash" if kind == "hash" else "signature"
+    other = "signature" if kind == "hash" else "hash"
+    for payload in [
+        {"type": kind, other: "0x01"},
+        {"type": kind, other: "0x01", required: invalid},
+    ]:
+        with pytest.raises(MppCodecError):
+            validate_payload("tempo", payload)
+
+
+@pytest.mark.parametrize("split", [False, True])
+@pytest.mark.parametrize("memo", ["0x" + "ab" * 32, "0xab", "0x" + "ab" * 33, "0x" + "gg" * 32])
+def test_tempo_memo_boundaries(split: bool, memo: str) -> None:
+    details: WireObject = {"memo": memo}
+    if split:
+        details = {"splits": [{"amount": "1", "recipient": "0x" + "1" * 40, "memo": memo}]}
+    request = {"amount": "1", "methodDetails": details}
+    if memo == "0x" + "ab" * 32:
+        assert validate_request("tempo", "charge", request) == request
+    else:
+        with pytest.raises(MppCodecError):
+            validate_request("tempo", "charge", request)
+
+
 def test_request_success() -> None:
     requests: list[tuple[str, str, WireObject]] = [
         (
@@ -342,12 +411,23 @@ def test_request_success() -> None:
         assert validate_payload("tempo", payload) == payload
 
 
+@pytest.mark.parametrize("count", ["1", "1.0", "1e0"])
+def test_subscription_integer_json_representations(count: str) -> None:
+    request = json.loads(
+        '{"amount":"1","currency":"USD","periodUnit":"month",'
+        f'"periodCount":{count},"subscriptionExpires":"2099-01-01T00:00:00Z"}}'
+    )
+    assert validate_request("inflow", "subscription", request) == request
+
+
 @pytest.mark.parametrize(
     "method,intent,change",
     [
         ("other", "charge", {}),
         ("tempo", "subscription", {}),
         ("inflow", "charge", {"amount": "1e3"}),
+        ("inflow", "charge", {"amount": "1,000"}),
+        ("inflow", "charge", {"amount": 1}),
         ("inflow", "charge", {"currency": ""}),
         ("inflow", "charge", {"recipient": "bad"}),
         ("inflow", "charge", {"methodDetails": {"rail": "other"}}),
@@ -356,7 +436,14 @@ def test_request_success() -> None:
         ("inflow", "subscription", {"amount": "-1"}),
         ("inflow", "subscription", {"periodUnit": "other"}),
         ("inflow", "subscription", {"periodCount": True}),
+        ("inflow", "subscription", {"periodCount": None}),
+        ("inflow", "subscription", {"periodCount": "1"}),
+        ("inflow", "subscription", {"periodCount": float("nan")}),
+        ("inflow", "subscription", {"periodCount": float("inf")}),
         ("inflow", "subscription", {"periodCount": 0}),
+        ("inflow", "subscription", {"periodCount": 1.5}),
+        ("inflow", "subscription", {"subscriptionExpires": None}),
+        ("inflow", "subscription", {"subscriptionExpires": "2099-01-01"}),
         ("inflow", "subscription", {"periodCount": 2**53}),
         ("inflow", "subscription", {"periodUnit": "minute", "periodCount": 1}),
         ("inflow", "subscription", {"externalId": " "}),

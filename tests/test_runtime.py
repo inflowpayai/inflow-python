@@ -409,7 +409,8 @@ async def test_retry_limit() -> None:
     assert calls == 4
 
 
-async def test_cancel_during_backoff() -> None:
+@pytest.mark.parametrize("failure", ["status", "network"])
+async def test_cancel_during_backoff(failure: str) -> None:
     called = asyncio.Event()
     calls = 0
 
@@ -417,6 +418,8 @@ async def test_cancel_during_backoff() -> None:
         nonlocal calls
         calls += 1
         called.set()
+        if failure == "network":
+            raise httpx.ReadError("response lost")
         return httpx.Response(503)
 
     async with Client(ClientOptions(transport=httpx.MockTransport(handle))) as client:
@@ -504,3 +507,53 @@ async def test_cleanup_does_not_replace_original_failure() -> None:
                 await client.cancel_approval("abc")
                 raise
     assert failure.value is error
+
+
+@pytest.mark.parametrize("phase", ["before-provider", "after-provider"])
+async def test_cancellation_prevents_authenticated_request(phase: str) -> None:
+    calls: list[str] = []
+
+    async def token() -> str:
+        calls.append("token")
+        task = asyncio.current_task()
+        assert task is not None
+        task.cancel()
+        return "test-key"
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        calls.append("request")
+        return httpx.Response(200, json={})
+
+    async with Client(
+        ClientOptions(access_token=token, transport=httpx.MockTransport(handle))
+    ) as client:
+
+        async def request() -> object:
+            if phase == "before-provider":
+                task = asyncio.current_task()
+                assert task is not None
+                task.cancel()
+            return await client.request("POST", "/v1/transactions/mpp")
+
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.create_task(request())
+    assert calls == ([] if phase == "before-provider" else ["token"])
+
+
+async def test_custom_transport_cancellation_does_not_return_success() -> None:
+    completed: list[object] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        task = asyncio.current_task()
+        assert task is not None
+        task.cancel()
+        return httpx.Response(200, json={"ok": True})
+
+    async with Client(ClientOptions(transport=httpx.MockTransport(handle))) as client:
+
+        async def request() -> None:
+            completed.append(await client.request("GET", "/x"))
+
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.create_task(request())
+    assert completed == []

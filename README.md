@@ -80,6 +80,132 @@ credential used for the failed attempt are redacted from error responses; sensit
 response headers are omitted. Transport errors use `TIMEOUT` or `NETWORK_ERROR` with
 `http_status=0`. Python task cancellation remains `asyncio.CancelledError`.
 
+## MPP Buyer
+
+Install `inflowpay[mpp]`. The Buyer obtains payment credentials from InFlow; it does
+not sign transfers locally. Use an InFlow API key or Bearer-token provider belonging
+to the paying account. The platform determines which payments that account may make.
+
+```python
+import os
+
+import httpx
+
+from inflowpay import ClientOptions
+from inflowpay.mpp.buyer import BuyerMethod, payment_transport
+
+
+async def buy(url: str) -> bytes:
+    async with BuyerMethod(
+        ClientOptions(environment="sandbox", api_key=os.environ["INFLOW_API_KEY"])
+    ) as method:
+        async with httpx.AsyncClient(transport=payment_transport([method])) as http:
+            response = await http.get(url)
+            response.raise_for_status()
+            return response.content
+```
+
+The first request reaches the seller without a payment credential. If the seller
+returns a compatible MPP challenge, the method asks InFlow to create the payment,
+waits for approval when required, and returns the platform's credential. pympp then
+sends that credential to the seller. Your InFlow API key goes only to InFlow, not
+to the seller. Keep redirects disabled on the HTTPX client, its default setting.
+
+### Select a payment method
+
+`BuyerMethod` implements pympp's asynchronous method interface. Pass it to
+`payment_transport` for HTTP requests or to pympp's `PaymentRuntime` for an existing
+integration. You can also call `await method.create_credential(challenge)` with a
+pympp `Challenge`; the result is a pympp `Credential` whose `to_authorization()`
+retains the platform's payload, payer source, and additional wire fields.
+
+| Constructor settings | Behavior |
+| --- | --- |
+| Defaults: `method="inflow", intent="charge"` | Pay an InFlow charge using the rail advertised by the seller. |
+| `instrument_id="..."` | Select the funding instrument for an InFlow instrument-rail charge. |
+| `method="tempo"` | Ask InFlow to produce a Tempo charge credential. No local wallet is required. |
+| `intent="subscription"` | Purchase a subscription through the create-and-approve flow. |
+| `intent="subscription", subscription_id="..."` | Authorize access using that existing subscription and the current seller challenge; do not purchase another subscription. |
+
+Instrument and subscription identifiers are UUID strings. They are fixed when the
+method is constructed. Unlike Node's per-call context, pympp passes only a challenge
+to a method. Use separate method instances for different selections; do not change
+one instance's settings between concurrent requests. Do not register several methods
+with the same method/intent expecting pympp to choose a funding instrument: pympp
+selects the first matching method. Select the intended instance in your application.
+
+### Waiting, errors, and shutdown
+
+`poll_interval` defaults to five seconds; the platform's `retryAfterSeconds` takes
+precedence. `pending_timeout` defaults to 900 seconds and starts after creation
+returns. Both settings use seconds and permit zero. A zero pending timeout accepts
+an immediately ready response but does not wait for a pending payment. The pending
+budget includes both waits and polling requests. Creation and subscription
+authorization use the separate request timeout from `ClientOptions`.
+
+Transaction creation, polling, and subscription authorization each make one HTTP
+attempt; a lost creation response is not proof that no payment was initiated.
+The method raises `MppPaymentFailedError` with the platform's `problem`,
+`MppPaymentExpiredError` with `transaction_id`, `MppPaymentTimeoutError` with
+`transaction_id` and `timeout`, or `MppMalformedCredentialError` for unusable
+responses. HTTP failures remain `InflowApiError`; application token-provider
+exceptions propagate. Do not automatically restart a payment after a failure.
+
+Cancel the caller's task to stop one operation, or `await method.cleanup()` to stop
+all active operations on that instance. Cancellation remains `asyncio.CancelledError`.
+The instance remains reusable after cleanup. `aclose()` stops active operations and
+closes the owned platform transport; the method cannot be reused after closing.
+The seller HTTP transport has its own lifetime and does not close your Buyer methods.
+The nested context managers above close both in the correct order.
+
+When a failed or cancelled purchase has returned an approval identifier, the method
+attempts bounded approval cancellation as described above. If creation is interrupted
+before that identifier arrives, it cannot cancel an unknown approval; server expiry
+is the backstop. Cancelling subscription authorization never cancels the subscription.
+`await method.cancel_approval(approval_id)` also exposes bounded, best-effort approval
+cancellation when your application already knows the identifier.
+
+### Automatic HTTP payment attempts
+
+`payment_transport` configures pympp with `max_payment_retries=1`: one initial
+request, at most one credential creation, and one paid retry. A further HTTP 402 is
+returned to your application. Inspect that response instead of blindly issuing
+another payment. Approval polling is separate and is not limited to one poll.
+
+pympp defaults to three paid retries and creates a credential on each retry. Node's
+mppx transport can reuse a credential for the same unresolved challenge; this Python
+helper does not add such a cache. Applications using pympp's transport directly must
+set their retry policy explicitly. The InFlow helper's limit does not affect other
+transports that you construct.
+
+If the paid retry loses its response or is cancelled, pympp raises
+`PaymentOutcomeUnknownError`: the seller may already have received the credential.
+That is different from cancelling an approval while waiting for InFlow. Retain the
+exception's credential and request information for reconciliation; do not treat the
+unknown outcome as permission to pay again.
+
+### MCP tools
+
+Install `inflowpay[mpp,mcp]` and pass the same Buyer method to pympp's
+`McpClient`. It wraps an initialized MCP session; your application owns that
+session and its connection.
+
+```python
+from mpp.extensions.mcp import McpClient
+
+# Inside the Buyer method and initialized session's lifetimes:
+client = McpClient(session, methods=[method])
+result = await client.call_tool("premium_tool", {"query": "example"})
+```
+
+pympp handles the payment-required tool error, obtains a credential from the
+Buyer method, and retries the tool once with payment metadata. InFlow charge,
+Tempo charge, and InFlow subscription methods use the same platform flow as HTTP.
+The subscription method's configured `subscription_id` determines whether it
+purchases a subscription or authorizes an existing one. The HTTP helper's retry
+setting does not configure MCP; pympp's MCP wrapper performs its own single retry.
+See the MCP receipt limitation below before relying on receipt metadata.
+
 ## Upstream MPP compatibility
 
 ### Wire values and request validation
