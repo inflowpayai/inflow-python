@@ -452,6 +452,125 @@ wire dictionaries from upstream models. Upstream fills omitted requirement
 are preserved. These typed models do not preserve arbitrary unknown top-level
 fields. Parsing a model or creating an identifier does not verify or settle a payment.
 
+## x402 Buyer
+
+Install `inflowpay[x402]` to pay with an InFlow account. `Buyer.create()` loads
+the account's supported payment methods before returning. Supply your buyer API
+key or access-token provider through `ClientOptions`; those credentials are sent
+to InFlow, not to the merchant.
+
+```python
+import asyncio
+import os
+
+import httpx
+from x402.http.clients.httpx import x402AsyncTransport
+
+from inflowpay import ClientOptions
+from inflowpay.x402.buyer import Buyer
+
+
+async def main():
+    async with (
+        await Buyer.create(
+            ClientOptions(api_key=os.environ["INFLOW_API_KEY"], environment="sandbox")
+        ) as buyer,
+        httpx.AsyncClient(transport=x402AsyncTransport(buyer), follow_redirects=False) as http,
+    ):
+        response = await http.get(os.environ["PAID_RESOURCE_URL"])
+        response.raise_for_status()
+        print(response.text)
+
+
+asyncio.run(main())
+```
+
+The upstream transport reads the merchant's payment requirements, asks the Buyer
+for a payment payload, and retries the resource request with that payload. An
+InFlow-managed payment can wait for the account owner to approve it. The default
+approval wait is 15 minutes, polling every 5 seconds; configure `pending_timeout`
+and `poll_interval` in seconds on `Buyer.create()`.
+
+### Show an approval before waiting
+
+Use `await buyer.prepare(requirement, resource)` when your application needs the
+`approval_id` and `transaction_id` before waiting. Pass a selected upstream
+`PaymentRequirements` and `ResourceInfo`. Then call `await payment.await_payload()`
+to obtain `encoded_payload`, `payment_payload`, and `transaction_id`, or
+`await payment.cancel()` to request approval cancellation.
+
+Repeated waits share the completed payload and run completion hooks once. A
+timeout before receiving a payload allows another wait on the same handle without
+creating a second approval. Cancelling an individual waiting task does not cancel
+the server approval; neither does closing the Buyer. The application owns that
+decision in the two-phase flow. The automatic `create_payment_payload()` flow
+requests cancellation if it fails before receiving a signed payload.
+
+### Payment selection and spending controls
+
+`inflowpay.x402.buyer.Buyer` supports two signing paths. It requests an
+InFlow-managed payment when InFlow supports the offered payment requirement.
+Otherwise, it passes the request to an external-wallet scheme registered with
+the upstream x402 client.
+
+Use `register_policy()` to filter payment requirements for either path. For
+InFlow-managed payments, the account's server-side policies and approval process
+also apply. The upstream `set_spend_controls()` settings apply only to
+external-wallet payments; they do not cap an InFlow-managed payment. This is the
+same separation used by the InFlow Node SDK. If your application needs a local
+amount limit for managed payments, enforce it in a registered payment policy.
+
+The explicit `prepare(requirement, resource)` method uses the requirement you
+provide, rather than selecting among offers or running selection policies. Apply
+your application's selection policy before calling it. InFlow's server-side
+policies and approvals still apply.
+
+### External wallets
+
+Install `inflowpay[evm]` or `inflowpay[svm]` and register an upstream signing scheme
+with `buyer.register(network, scheme)` to allow external-wallet payments. The
+Buyer first selects a supported InFlow payment; otherwise it delegates to the
+registered upstream schemes. `prefer` controls the managed scheme order and
+defaults to `("balance", "exact")`. Managed signing does not accept Permit2
+requirements; those use an external wallet.
+
+InFlow-managed payment requests use asynchronous network calls. External-wallet
+payments run through the upstream Python x402 signing implementation. Its Solana
+signer performs synchronous network requests for mint metadata and, when needed,
+a recent blockhash. Those requests block other tasks on the same event loop even
+when the caller awaits `create_payment_payload()`. The upstream TypeScript Solana
+signer awaits these network requests instead.
+
+The Python Buyer preserves upstream signing behavior; it does not move wallet
+signers into background threads. Applications using external wallets should
+account for this blocking work when sharing an event loop with other requests.
+See [upstream issue #3649](https://github.com/x402-foundation/x402/issues/3649)
+for the reproduction and comparison with the TypeScript implementation.
+
+### EIP-7702 sponsorship
+
+`inflowpay.x402.eip7702.SponsorshipExtension` supports external EVM wallets when
+the merchant advertises `inflowEip7702GasSponsoring` for an exact Permit2 payment.
+Install the `evm` extra. Construct the extension with anonymous `ClientOptions`,
+a `SponsorshipSigner`, and an asynchronous consent callback, then register it with
+`buyer.register_extension(extension)`. Keep the extension's asynchronous context
+manager open while creating payments; it owns a separate HTTP client.
+
+The signer provides its address and three asynchronous methods: `allowance()`
+reads the token allowance; `sign_message()` signs the supplied operation hash
+using Ethereum's personal-message prefix; and `sign_authorization()` signs the
+supplied EIP-7702 authorization. Both signing methods return 65-byte signatures
+with recovery ID 27 or 28. The signer must belong to the wallet registered with
+the upstream payment scheme.
+
+Sponsorship is skipped when the existing Permit2 allowance covers the payment.
+Otherwise, the extension requests preparation from InFlow and verifies the
+returned contracts, payment calls, operation hash, and expiry before signing.
+If account delegation is required, the consent callback must return `True` only
+after the owner agrees: delegation persists even if the payment fails. The
+extension returns signed data; it does not broadcast a transaction. Availability
+depends on the InFlow environment's sponsorship endpoint and supported networks.
+
 ## x402 facilitator capabilities
 
 Facilitator capabilities describe the payment schemes, networks, and extensions

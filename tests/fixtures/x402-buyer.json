@@ -1,0 +1,3658 @@
+{
+  "cases": [
+    {
+      "id": "x402.buyer.ready-balance",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "result": {
+          "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+          "paymentPayload": {
+            "x402Version": 2,
+            "accepted": {
+              "scheme": "balance",
+              "network": "inflow:1",
+              "asset": "USDC",
+              "amount": "100000000",
+              "payTo": "11111111-1111-4111-8111-111111111111",
+              "maxTimeoutSeconds": 300,
+              "extra": {}
+            },
+            "resource": {
+              "url": "https://seller.example/data",
+              "mimeType": "application/json"
+            },
+            "payload": {
+              "transactionId": "22222222-2222-4222-8222-222222222222"
+            },
+            "extensions": {
+              "payment-identifier": {
+                "info": {
+                  "required": false,
+                  "id": "pay_0123456789abcdef0123456789abcdef"
+                },
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 16,
+                      "maxLength": 128,
+                      "pattern": "^[a-zA-Z0-9_-]+$"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "required"
+                  ]
+                }
+              }
+            }
+          },
+          "transactionId": "22222222-2222-4222-8222-222222222222"
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "PENDING",
+                "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+                "paymentPayload": {
+                  "x402Version": 2,
+                  "accepted": {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "asset": "USDC",
+                    "amount": "100000000",
+                    "payTo": "11111111-1111-4111-8111-111111111111",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {}
+                  },
+                  "resource": {
+                    "url": "https://seller.example/data",
+                    "mimeType": "application/json"
+                  },
+                  "payload": {
+                    "transactionId": "22222222-2222-4222-8222-222222222222"
+                  },
+                  "extensions": {
+                    "payment-identifier": {
+                      "info": {
+                        "required": false,
+                        "id": "pay_0123456789abcdef0123456789abcdef"
+                      },
+                      "schema": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 16,
+                            "maxLength": 128,
+                            "pattern": "^[a-zA-Z0-9_-]+$"
+                          },
+                          "required": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "required"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.ready-exact",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "asset": "0x3333333333333333333333333333333333333333",
+          "amount": "1000000",
+          "payTo": "0x1111111111111111111111111111111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {
+            "assetTransferMethod": "eip3009",
+            "name": "USDC",
+            "version": "2"
+          }
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "result": {
+          "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoiZWlwMTU1Ojg0NTMiLCJhc3NldCI6IjB4MzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMyIsImFtb3VudCI6IjEwMDAwMDAiLCJwYXlUbyI6IjB4MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSIsIm1heFRpbWVvdXRTZWNvbmRzIjozMDAsImV4dHJhIjp7ImFzc2V0VHJhbnNmZXJNZXRob2QiOiJlaXAzMDA5IiwibmFtZSI6IlVTREMiLCJ2ZXJzaW9uIjoiMiJ9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsic2lnbmF0dXJlIjoiMHhhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiIiwiYXV0aG9yaXphdGlvbiI6eyJmcm9tIjoiMHgyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyIiwidG8iOiIweDExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEiLCJ2YWx1ZSI6IjEwMDAwMDAiLCJ2YWxpZEFmdGVyIjoiMTcwMDAwMDAwMCIsInZhbGlkQmVmb3JlIjoiMTcwMDAwMDMwMCIsIm5vbmNlIjoiMHgxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyIn19LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+          "paymentPayload": {
+            "x402Version": 2,
+            "accepted": {
+              "scheme": "exact",
+              "network": "eip155:8453",
+              "asset": "0x3333333333333333333333333333333333333333",
+              "amount": "1000000",
+              "payTo": "0x1111111111111111111111111111111111111111",
+              "maxTimeoutSeconds": 300,
+              "extra": {
+                "assetTransferMethod": "eip3009",
+                "name": "USDC",
+                "version": "2"
+              }
+            },
+            "resource": {
+              "url": "https://seller.example/data",
+              "mimeType": "application/json"
+            },
+            "payload": {
+              "signature": "0xababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+              "authorization": {
+                "from": "0x2222222222222222222222222222222222222222",
+                "to": "0x1111111111111111111111111111111111111111",
+                "value": "1000000",
+                "validAfter": "1700000000",
+                "validBefore": "1700000300",
+                "nonce": "0x1212121212121212121212121212121212121212121212121212121212121212"
+              }
+            },
+            "extensions": {
+              "payment-identifier": {
+                "info": {
+                  "required": false,
+                  "id": "pay_0123456789abcdef0123456789abcdef"
+                },
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 16,
+                      "maxLength": 128,
+                      "pattern": "^[a-zA-Z0-9_-]+$"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "required"
+                  ]
+                }
+              }
+            }
+          },
+          "transactionId": "22222222-2222-4222-8222-222222222222"
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "exact",
+                  "network": "eip155:8453",
+                  "asset": "0x3333333333333333333333333333333333333333",
+                  "amount": "1000000",
+                  "payTo": "0x1111111111111111111111111111111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {
+                    "assetTransferMethod": "eip3009",
+                    "name": "USDC",
+                    "version": "2"
+                  }
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "PENDING",
+                "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoiZWlwMTU1Ojg0NTMiLCJhc3NldCI6IjB4MzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMyIsImFtb3VudCI6IjEwMDAwMDAiLCJwYXlUbyI6IjB4MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSIsIm1heFRpbWVvdXRTZWNvbmRzIjozMDAsImV4dHJhIjp7ImFzc2V0VHJhbnNmZXJNZXRob2QiOiJlaXAzMDA5IiwibmFtZSI6IlVTREMiLCJ2ZXJzaW9uIjoiMiJ9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsic2lnbmF0dXJlIjoiMHhhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiIiwiYXV0aG9yaXphdGlvbiI6eyJmcm9tIjoiMHgyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyIiwidG8iOiIweDExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEiLCJ2YWx1ZSI6IjEwMDAwMDAiLCJ2YWxpZEFmdGVyIjoiMTcwMDAwMDAwMCIsInZhbGlkQmVmb3JlIjoiMTcwMDAwMDMwMCIsIm5vbmNlIjoiMHgxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyIn19LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+                "paymentPayload": {
+                  "x402Version": 2,
+                  "accepted": {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x3333333333333333333333333333333333333333",
+                    "amount": "1000000",
+                    "payTo": "0x1111111111111111111111111111111111111111",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                      "assetTransferMethod": "eip3009",
+                      "name": "USDC",
+                      "version": "2"
+                    }
+                  },
+                  "resource": {
+                    "url": "https://seller.example/data",
+                    "mimeType": "application/json"
+                  },
+                  "payload": {
+                    "signature": "0xababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+                    "authorization": {
+                      "from": "0x2222222222222222222222222222222222222222",
+                      "to": "0x1111111111111111111111111111111111111111",
+                      "value": "1000000",
+                      "validAfter": "1700000000",
+                      "validBefore": "1700000300",
+                      "nonce": "0x1212121212121212121212121212121212121212121212121212121212121212"
+                    }
+                  },
+                  "extensions": {
+                    "payment-identifier": {
+                      "info": {
+                        "required": false,
+                        "id": "pay_0123456789abcdef0123456789abcdef"
+                      },
+                      "schema": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 16,
+                            "maxLength": 128,
+                            "pattern": "^[a-zA-Z0-9_-]+$"
+                          },
+                          "required": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "required"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.wait-initiated",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "result": {
+          "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+          "paymentPayload": {
+            "x402Version": 2,
+            "accepted": {
+              "scheme": "balance",
+              "network": "inflow:1",
+              "asset": "USDC",
+              "amount": "100000000",
+              "payTo": "11111111-1111-4111-8111-111111111111",
+              "maxTimeoutSeconds": 300,
+              "extra": {}
+            },
+            "resource": {
+              "url": "https://seller.example/data",
+              "mimeType": "application/json"
+            },
+            "payload": {
+              "transactionId": "22222222-2222-4222-8222-222222222222"
+            },
+            "extensions": {
+              "payment-identifier": {
+                "info": {
+                  "required": false,
+                  "id": "pay_0123456789abcdef0123456789abcdef"
+                },
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 16,
+                      "maxLength": 128,
+                      "pattern": "^[a-zA-Z0-9_-]+$"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "required"
+                  ]
+                }
+              }
+            }
+          },
+          "transactionId": "22222222-2222-4222-8222-222222222222"
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "INITIATED"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "PENDING",
+                "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+                "paymentPayload": {
+                  "x402Version": 2,
+                  "accepted": {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "asset": "USDC",
+                    "amount": "100000000",
+                    "payTo": "11111111-1111-4111-8111-111111111111",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {}
+                  },
+                  "resource": {
+                    "url": "https://seller.example/data",
+                    "mimeType": "application/json"
+                  },
+                  "payload": {
+                    "transactionId": "22222222-2222-4222-8222-222222222222"
+                  },
+                  "extensions": {
+                    "payment-identifier": {
+                      "info": {
+                        "required": false,
+                        "id": "pay_0123456789abcdef0123456789abcdef"
+                      },
+                      "schema": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 16,
+                            "maxLength": 128,
+                            "pattern": "^[a-zA-Z0-9_-]+$"
+                          },
+                          "required": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "required"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.wait-pending",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "result": {
+          "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+          "paymentPayload": {
+            "x402Version": 2,
+            "accepted": {
+              "scheme": "balance",
+              "network": "inflow:1",
+              "asset": "USDC",
+              "amount": "100000000",
+              "payTo": "11111111-1111-4111-8111-111111111111",
+              "maxTimeoutSeconds": 300,
+              "extra": {}
+            },
+            "resource": {
+              "url": "https://seller.example/data",
+              "mimeType": "application/json"
+            },
+            "payload": {
+              "transactionId": "22222222-2222-4222-8222-222222222222"
+            },
+            "extensions": {
+              "payment-identifier": {
+                "info": {
+                  "required": false,
+                  "id": "pay_0123456789abcdef0123456789abcdef"
+                },
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 16,
+                      "maxLength": 128,
+                      "pattern": "^[a-zA-Z0-9_-]+$"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "required"
+                  ]
+                }
+              }
+            }
+          },
+          "transactionId": "22222222-2222-4222-8222-222222222222"
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "PENDING"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "PENDING",
+                "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+                "paymentPayload": {
+                  "x402Version": 2,
+                  "accepted": {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "asset": "USDC",
+                    "amount": "100000000",
+                    "payTo": "11111111-1111-4111-8111-111111111111",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {}
+                  },
+                  "resource": {
+                    "url": "https://seller.example/data",
+                    "mimeType": "application/json"
+                  },
+                  "payload": {
+                    "transactionId": "22222222-2222-4222-8222-222222222222"
+                  },
+                  "extensions": {
+                    "payment-identifier": {
+                      "info": {
+                        "required": false,
+                        "id": "pay_0123456789abcdef0123456789abcdef"
+                      },
+                      "schema": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 16,
+                            "maxLength": 128,
+                            "pattern": "^[a-zA-Z0-9_-]+$"
+                          },
+                          "required": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "required"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.wait-processing",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "result": {
+          "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+          "paymentPayload": {
+            "x402Version": 2,
+            "accepted": {
+              "scheme": "balance",
+              "network": "inflow:1",
+              "asset": "USDC",
+              "amount": "100000000",
+              "payTo": "11111111-1111-4111-8111-111111111111",
+              "maxTimeoutSeconds": 300,
+              "extra": {}
+            },
+            "resource": {
+              "url": "https://seller.example/data",
+              "mimeType": "application/json"
+            },
+            "payload": {
+              "transactionId": "22222222-2222-4222-8222-222222222222"
+            },
+            "extensions": {
+              "payment-identifier": {
+                "info": {
+                  "required": false,
+                  "id": "pay_0123456789abcdef0123456789abcdef"
+                },
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 16,
+                      "maxLength": 128,
+                      "pattern": "^[a-zA-Z0-9_-]+$"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "required"
+                  ]
+                }
+              }
+            }
+          },
+          "transactionId": "22222222-2222-4222-8222-222222222222"
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "PROCESSING"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "PENDING",
+                "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+                "paymentPayload": {
+                  "x402Version": 2,
+                  "accepted": {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "asset": "USDC",
+                    "amount": "100000000",
+                    "payTo": "11111111-1111-4111-8111-111111111111",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {}
+                  },
+                  "resource": {
+                    "url": "https://seller.example/data",
+                    "mimeType": "application/json"
+                  },
+                  "payload": {
+                    "transactionId": "22222222-2222-4222-8222-222222222222"
+                  },
+                  "extensions": {
+                    "payment-identifier": {
+                      "info": {
+                        "required": false,
+                        "id": "pay_0123456789abcdef0123456789abcdef"
+                      },
+                      "schema": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 16,
+                            "maxLength": 128,
+                            "pattern": "^[a-zA-Z0-9_-]+$"
+                          },
+                          "required": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "required"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.wait-settled",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "result": {
+          "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+          "paymentPayload": {
+            "x402Version": 2,
+            "accepted": {
+              "scheme": "balance",
+              "network": "inflow:1",
+              "asset": "USDC",
+              "amount": "100000000",
+              "payTo": "11111111-1111-4111-8111-111111111111",
+              "maxTimeoutSeconds": 300,
+              "extra": {}
+            },
+            "resource": {
+              "url": "https://seller.example/data",
+              "mimeType": "application/json"
+            },
+            "payload": {
+              "transactionId": "22222222-2222-4222-8222-222222222222"
+            },
+            "extensions": {
+              "payment-identifier": {
+                "info": {
+                  "required": false,
+                  "id": "pay_0123456789abcdef0123456789abcdef"
+                },
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 16,
+                      "maxLength": 128,
+                      "pattern": "^[a-zA-Z0-9_-]+$"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "required"
+                  ]
+                }
+              }
+            }
+          },
+          "transactionId": "22222222-2222-4222-8222-222222222222"
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "SETTLED"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "PENDING",
+                "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+                "paymentPayload": {
+                  "x402Version": 2,
+                  "accepted": {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "asset": "USDC",
+                    "amount": "100000000",
+                    "payTo": "11111111-1111-4111-8111-111111111111",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {}
+                  },
+                  "resource": {
+                    "url": "https://seller.example/data",
+                    "mimeType": "application/json"
+                  },
+                  "payload": {
+                    "transactionId": "22222222-2222-4222-8222-222222222222"
+                  },
+                  "extensions": {
+                    "payment-identifier": {
+                      "info": {
+                        "required": false,
+                        "id": "pay_0123456789abcdef0123456789abcdef"
+                      },
+                      "schema": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 16,
+                            "maxLength": 128,
+                            "pattern": "^[a-zA-Z0-9_-]+$"
+                          },
+                          "required": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "required"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.failure-declined",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "error": {
+          "code": "payment-failed",
+          "message": "Payment failed.",
+          "details": {
+            "status": "DECLINED"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "DECLINED"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.failure-expired",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "error": {
+          "code": "payment-failed",
+          "message": "Payment failed.",
+          "details": {
+            "status": "EXPIRED"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "EXPIRED"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.failure-general_error",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "error": {
+          "code": "payment-failed",
+          "message": "Payment failed.",
+          "details": {
+            "status": "GENERAL_ERROR"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "GENERAL_ERROR"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.failure-insufficient_funds",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "error": {
+          "code": "payment-failed",
+          "message": "Payment failed.",
+          "details": {
+            "status": "INSUFFICIENT_FUNDS"
+          }
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "INSUFFICIENT_FUNDS"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.transient-poll-failure",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "result": {
+          "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+          "paymentPayload": {
+            "x402Version": 2,
+            "accepted": {
+              "scheme": "balance",
+              "network": "inflow:1",
+              "asset": "USDC",
+              "amount": "100000000",
+              "payTo": "11111111-1111-4111-8111-111111111111",
+              "maxTimeoutSeconds": 300,
+              "extra": {}
+            },
+            "resource": {
+              "url": "https://seller.example/data",
+              "mimeType": "application/json"
+            },
+            "payload": {
+              "transactionId": "22222222-2222-4222-8222-222222222222"
+            },
+            "extensions": {
+              "payment-identifier": {
+                "info": {
+                  "required": false,
+                  "id": "pay_0123456789abcdef0123456789abcdef"
+                },
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 16,
+                      "maxLength": 128,
+                      "pattern": "^[a-zA-Z0-9_-]+$"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "required"
+                  ]
+                }
+              }
+            }
+          },
+          "transactionId": "22222222-2222-4222-8222-222222222222"
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 503,
+              "json": {
+                "code": "TEMPORARY_ERROR"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "PENDING",
+                "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+                "paymentPayload": {
+                  "x402Version": 2,
+                  "accepted": {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "asset": "USDC",
+                    "amount": "100000000",
+                    "payTo": "11111111-1111-4111-8111-111111111111",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {}
+                  },
+                  "resource": {
+                    "url": "https://seller.example/data",
+                    "mimeType": "application/json"
+                  },
+                  "payload": {
+                    "transactionId": "22222222-2222-4222-8222-222222222222"
+                  },
+                  "extensions": {
+                    "payment-identifier": {
+                      "info": {
+                        "required": false,
+                        "id": "pay_0123456789abcdef0123456789abcdef"
+                      },
+                      "schema": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 16,
+                            "maxLength": 128,
+                            "pattern": "^[a-zA-Z0-9_-]+$"
+                          },
+                          "required": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "required"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.permanent-poll-401",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "error": {
+          "code": "api-error",
+          "message": "InFlow API request failed.",
+          "details": {
+            "body": {
+              "errors": [
+                {
+                  "code": "DENIED",
+                  "message": "Access denied."
+                }
+              ]
+            }
+          },
+          "http_status": 401
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 401,
+              "json": {
+                "errors": [
+                  {
+                    "code": "DENIED",
+                    "message": "Access denied."
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.permanent-poll-403",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "error": {
+          "code": "api-error",
+          "message": "InFlow API request failed.",
+          "details": {
+            "body": {
+              "errors": [
+                {
+                  "code": "DENIED",
+                  "message": "Access denied."
+                }
+              ]
+            }
+          },
+          "http_status": 403
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 403,
+              "json": {
+                "errors": [
+                  {
+                    "code": "DENIED",
+                    "message": "Access denied."
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.permanent-poll-404",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "error": {
+          "code": "api-error",
+          "message": "InFlow API request failed.",
+          "details": {
+            "body": {
+              "errors": [
+                {
+                  "code": "DENIED",
+                  "message": "Access denied."
+                }
+              ]
+            }
+          },
+          "http_status": 404
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 404,
+              "json": {
+                "errors": [
+                  {
+                    "code": "DENIED",
+                    "message": "Access denied."
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.rate-limited-poll",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "result": {
+          "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+          "paymentPayload": {
+            "x402Version": 2,
+            "accepted": {
+              "scheme": "balance",
+              "network": "inflow:1",
+              "asset": "USDC",
+              "amount": "100000000",
+              "payTo": "11111111-1111-4111-8111-111111111111",
+              "maxTimeoutSeconds": 300,
+              "extra": {}
+            },
+            "resource": {
+              "url": "https://seller.example/data",
+              "mimeType": "application/json"
+            },
+            "payload": {
+              "transactionId": "22222222-2222-4222-8222-222222222222"
+            },
+            "extensions": {
+              "payment-identifier": {
+                "info": {
+                  "required": false,
+                  "id": "pay_0123456789abcdef0123456789abcdef"
+                },
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 16,
+                      "maxLength": 128,
+                      "pattern": "^[a-zA-Z0-9_-]+$"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "required"
+                  ]
+                }
+              }
+            }
+          },
+          "transactionId": "22222222-2222-4222-8222-222222222222"
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 429,
+              "json": {
+                "code": "RATE_LIMITED"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "PENDING",
+                "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+                "paymentPayload": {
+                  "x402Version": 2,
+                  "accepted": {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "asset": "USDC",
+                    "amount": "100000000",
+                    "payTo": "11111111-1111-4111-8111-111111111111",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {}
+                  },
+                  "resource": {
+                    "url": "https://seller.example/data",
+                    "mimeType": "application/json"
+                  },
+                  "payload": {
+                    "transactionId": "22222222-2222-4222-8222-222222222222"
+                  },
+                  "extensions": {
+                    "payment-identifier": {
+                      "info": {
+                        "required": false,
+                        "id": "pay_0123456789abcdef0123456789abcdef"
+                      },
+                      "schema": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 16,
+                            "maxLength": 128,
+                            "pattern": "^[a-zA-Z0-9_-]+$"
+                          },
+                          "required": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "required"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.timeout-during-poll",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef",
+        "timeout_ms": 500
+      },
+      "expect": {
+        "error": {
+          "code": "payment-timeout",
+          "message": "Payment timed out."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "PENDING",
+                "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+                "paymentPayload": {
+                  "x402Version": 2,
+                  "accepted": {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "asset": "USDC",
+                    "amount": "100000000",
+                    "payTo": "11111111-1111-4111-8111-111111111111",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {}
+                  },
+                  "resource": {
+                    "url": "https://seller.example/data",
+                    "mimeType": "application/json"
+                  },
+                  "payload": {
+                    "transactionId": "22222222-2222-4222-8222-222222222222"
+                  },
+                  "extensions": {
+                    "payment-identifier": {
+                      "info": {
+                        "required": false,
+                        "id": "pay_0123456789abcdef0123456789abcdef"
+                      },
+                      "schema": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 16,
+                            "maxLength": 128,
+                            "pattern": "^[a-zA-Z0-9_-]+$"
+                          },
+                          "required": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "required"
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              "delay_ms": 1000
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.create-not-retried",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "error": {
+          "code": "api-error",
+          "message": "InFlow API request failed.",
+          "details": {
+            "body": {
+              "code": "TEMPORARY_ERROR"
+            }
+          },
+          "http_status": 503
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 503,
+              "json": {
+                "code": "TEMPORARY_ERROR"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.invalid-identifier",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "short"
+      },
+      "expect": {
+        "error": {
+          "code": "invalid-input",
+          "message": "Invalid input."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.permit2-external-only",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "asset": "0x3333333333333333333333333333333333333333",
+          "amount": "1000000",
+          "payTo": "0x1111111111111111111111111111111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {
+            "assetTransferMethod": "permit2",
+            "permit2Proxy": "0x402085c248EeA27D92E8b30b2C58ed07f9E20001"
+          }
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "error": {
+          "code": "unsupported-capability",
+          "message": "Unsupported payment capability."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.unsupported-network",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "exact",
+          "network": "eip155:999999",
+          "asset": "0x3333333333333333333333333333333333333333",
+          "amount": "1000000",
+          "payTo": "0x1111111111111111111111111111111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {
+            "assetTransferMethod": "eip3009",
+            "name": "USDC",
+            "version": "2"
+          }
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "error": {
+          "code": "unsupported-capability",
+          "message": "Unsupported payment capability."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.cancel",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.cancel",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "error": {
+          "code": "payment-cancelled",
+          "message": "Payment cancelled."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/approvals/33333333-3333-4333-8333-333333333333/cancel",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 204
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.cancel-api-failure",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.cancel",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "error": {
+          "code": "payment-cancelled",
+          "message": "Payment cancelled."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/approvals/33333333-3333-4333-8333-333333333333/cancel",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 503
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.concurrent-await",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.concurrent-await",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef"
+      },
+      "expect": {
+        "result": {
+          "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+          "paymentPayload": {
+            "x402Version": 2,
+            "accepted": {
+              "scheme": "balance",
+              "network": "inflow:1",
+              "asset": "USDC",
+              "amount": "100000000",
+              "payTo": "11111111-1111-4111-8111-111111111111",
+              "maxTimeoutSeconds": 300,
+              "extra": {}
+            },
+            "resource": {
+              "url": "https://seller.example/data",
+              "mimeType": "application/json"
+            },
+            "payload": {
+              "transactionId": "22222222-2222-4222-8222-222222222222"
+            },
+            "extensions": {
+              "payment-identifier": {
+                "info": {
+                  "required": false,
+                  "id": "pay_0123456789abcdef0123456789abcdef"
+                },
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 16,
+                      "maxLength": 128,
+                      "pattern": "^[a-zA-Z0-9_-]+$"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "required"
+                  ]
+                }
+              }
+            }
+          },
+          "transactionId": "22222222-2222-4222-8222-222222222222"
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "PENDING",
+                "encodedPayload": "eyJ4NDAyVmVyc2lvbiI6MiwiYWNjZXB0ZWQiOnsic2NoZW1lIjoiYmFsYW5jZSIsIm5ldHdvcmsiOiJpbmZsb3c6MSIsImFzc2V0IjoiVVNEQyIsImFtb3VudCI6IjEwMDAwMDAwMCIsInBheVRvIjoiMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnt9fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly9zZWxsZXIuZXhhbXBsZS9kYXRhIiwibWltZVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIn0sInBheWxvYWQiOnsidHJhbnNhY3Rpb25JZCI6IjIyMjIyMjIyLTIyMjItNDIyMi04MjIyLTIyMjIyMjIyMjIyMiJ9LCJleHRlbnNpb25zIjp7InBheW1lbnQtaWRlbnRpZmllciI6eyJpbmZvIjp7InJlcXVpcmVkIjpmYWxzZSwiaWQiOiJwYXlfMDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYifSwic2NoZW1hIjp7IiRzY2hlbWEiOiJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsInR5cGUiOiJvYmplY3QiLCJwcm9wZXJ0aWVzIjp7ImlkIjp7InR5cGUiOiJzdHJpbmciLCJtaW5MZW5ndGgiOjE2LCJtYXhMZW5ndGgiOjEyOCwicGF0dGVybiI6Il5bYS16QS1aMC05Xy1dKyQifSwicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifX0sInJlcXVpcmVkIjpbInJlcXVpcmVkIl19fX19",
+                "paymentPayload": {
+                  "x402Version": 2,
+                  "accepted": {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "asset": "USDC",
+                    "amount": "100000000",
+                    "payTo": "11111111-1111-4111-8111-111111111111",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {}
+                  },
+                  "resource": {
+                    "url": "https://seller.example/data",
+                    "mimeType": "application/json"
+                  },
+                  "payload": {
+                    "transactionId": "22222222-2222-4222-8222-222222222222"
+                  },
+                  "extensions": {
+                    "payment-identifier": {
+                      "info": {
+                        "required": false,
+                        "id": "pay_0123456789abcdef0123456789abcdef"
+                      },
+                      "schema": {
+                        "$schema": "https://json-schema.org/draft/2020-12/schema",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 16,
+                            "maxLength": 128,
+                            "pattern": "^[a-zA-Z0-9_-]+$"
+                          },
+                          "required": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "required"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "x402.buyer.timeout",
+      "suite": "x402-buyer",
+      "operation": "x402.buyer.sign",
+      "input": {
+        "api_key": "test-only-buyer-key",
+        "requirement": {
+          "scheme": "balance",
+          "network": "inflow:1",
+          "asset": "USDC",
+          "amount": "100000000",
+          "payTo": "11111111-1111-4111-8111-111111111111",
+          "maxTimeoutSeconds": 300,
+          "extra": {}
+        },
+        "context": {
+          "resource": {
+            "url": "https://seller.example/data",
+            "mimeType": "application/json"
+          },
+          "x402Version": 2
+        },
+        "payment_id": "pay_0123456789abcdef0123456789abcdef",
+        "timeout_ms": 1000,
+        "poll_interval_ms": 1100
+      },
+      "expect": {
+        "error": {
+          "code": "payment-timeout",
+          "message": "Payment timed out."
+        }
+      },
+      "platform": {
+        "exchanges": [
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/x402-supported",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "kinds": [
+                  {
+                    "scheme": "balance",
+                    "network": "inflow:1",
+                    "x402Version": 2
+                  },
+                  {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "x402Version": 2
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "POST",
+              "path": "/v1/transactions/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              },
+              "json": {
+                "accept": {
+                  "scheme": "balance",
+                  "network": "inflow:1",
+                  "asset": "USDC",
+                  "amount": "100000000",
+                  "payTo": "11111111-1111-4111-8111-111111111111",
+                  "maxTimeoutSeconds": 300,
+                  "extra": {}
+                },
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "x402Version": 2,
+                "remotePaymentId": "pay_0123456789abcdef0123456789abcdef"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "amount": "1",
+                "currency": "USDC",
+                "approvalId": "33333333-3333-4333-8333-333333333333",
+                "approvalStatus": "PENDING",
+                "resource": {
+                  "url": "https://seller.example/data",
+                  "mimeType": "application/json"
+                },
+                "transactionId": "22222222-2222-4222-8222-222222222222"
+              }
+            }
+          },
+          {
+            "request": {
+              "method": "GET",
+              "path": "/v1/transactions/22222222-2222-4222-8222-222222222222/x402",
+              "headers": {
+                "x-api-key": "test-only-buyer-key"
+              }
+            },
+            "response": {
+              "status": 200,
+              "json": {
+                "status": "INITIATED"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
