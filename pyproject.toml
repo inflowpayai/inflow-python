@@ -45,10 +45,11 @@ dev = [
   "pytest-cov==7.1.0",
   "ruff==0.16.9",
   "twine==7.0.0",
+  "uvicorn==0.54.0",
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["/LICENSE", "/README.md", "/src"]
+include = ["/LICENSE", "/README.md", "/examples", "/src"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/inflowpay"]
@@ -56,11 +57,12 @@ packages = ["src/inflowpay"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["src", "tests", "scripts"]
+files = ["src", "tests", "scripts", "examples"]
 
 [tool.pytest.ini_options]
 addopts = [
   "--cov=inflowpay",
+  "--cov=examples",
   "--cov-branch",
   "--cov-fail-under=100",
   "--cov-report=term-missing",
@@ -70,10 +72,11 @@ addopts = [
   "--strict-markers",
 ]
 asyncio_mode = "auto"
+pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["inflowpay"]
+source = ["inflowpay", "examples"]
 branch = true
 
 [tool.coverage.report]
