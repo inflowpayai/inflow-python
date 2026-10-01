@@ -31,13 +31,26 @@ MPP_CONSUMER = """
 from importlib import util
 from inflowpay.mpp import encode, decode, to_pympp_challenge, from_pympp_challenge
 from inflowpay.mpp.buyer import BuyerMethod, payment_transport
+from inflowpay.mpp.seller import Seller
 from inflowpay import ClientOptions
 import asyncio
+import httpx
 async def check_buyer():
     async with BuyerMethod(ClientOptions()) as buyer:
         transport = payment_transport([buyer])
         await transport.aclose()
 asyncio.run(check_buyer())
+async def check_seller():
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json={
+        'sellerId': '11111111-1111-4111-8111-111111111111',
+        'featureFlags': {},
+        'supportedMethods': [{'id': 'inflow', 'methodDetails': {
+            'currencyRails': {'USDC': {'rail': 'balance'}}}}],
+    }))
+    options = ClientOptions(api_key='test-key', transport=transport)
+    async with await Seller.create(options) as seller:
+        assert seller.charge_request({'amount': '0.50', 'currency': 'USDC'})['amount'] == '0.50'
+asyncio.run(check_seller())
 wire = dict(id='test', realm='seller.example', method='inflow', intent='charge',
             request=encode({'amount': '1'}))
 assert from_pympp_challenge(to_pympp_challenge(wire)) == wire
