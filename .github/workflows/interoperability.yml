@@ -1,0 +1,68 @@
+name: Node interoperability
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  interoperability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13", "3.14"]
+    defaults:
+      run:
+        working-directory: sdk
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: sdk
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: "0.11.8"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Read Node revision
+        id: pin
+        run: |
+          node --input-type=module -e '
+            import { readFileSync, appendFileSync } from "node:fs";
+            const { revision } = JSON.parse(readFileSync("interop/node.lock.json", "utf8"));
+            if (!/^[0-9a-f]{40}$/.test(revision)) throw new Error("Invalid node-sdk revision");
+            appendFileSync(process.env.GITHUB_OUTPUT, `revision=${revision}\n`);
+          '
+      - uses: actions/checkout@v7
+        with:
+          repository: inflowpayai/inflow-node
+          ref: ${{ steps.pin.outputs.revision }}
+          path: node-sdk
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: node-sdk/package.json
+      - run: pnpm install --frozen-lockfile
+        working-directory: node-sdk
+      - run: pnpm build
+        working-directory: node-sdk
+      - run: uv sync --all-extras --all-groups --locked --python "${{ matrix.python }}"
+      - name: Run real HTTP exchanges
+        run: node scripts/interoperability.mjs ../node-sdk "$RUNNER_TEMP/interoperability.json"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: inflow-python-node-interoperability-${{ matrix.python }}
+          path: ${{ runner.temp }}/interoperability.json
+          if-no-files-found: warn
+          retention-days: 14
