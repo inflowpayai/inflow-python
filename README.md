@@ -720,3 +720,9 @@ This differs from the InFlow Node facilitator's one-hour capability cache. Node
 refreshes that cache when it is queried after expiry; it does not automatically
 reinitialize the application's resource server every hour. In Python, there is
 no timed capability refresh or background polling.
+
+## Cross-language verification
+
+The [Python–Node interoperability suite](https://github.com/inflowpayai/inflow-python/blob/main/interop/README.md) exercises Buyers and
+Sellers from both SDKs over local HTTP, including payment rejection and settlement
+failure. It uses a synthetic InFlow platform and does not make live payments.
