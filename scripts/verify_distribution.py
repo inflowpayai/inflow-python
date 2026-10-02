@@ -1,5 +1,7 @@
 """Build from source and verify the wheel outside the checkout."""
 
+import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -155,6 +157,29 @@ def main() -> None:
             check=True,
         )
         subprocess.run([str(python), "-I", "-c", OPTIONAL_CONSUMER], cwd=temporary, check=True)
+        subprocess.run(
+            ["uv", "pip", "install", "--python", str(python), "uvicorn==0.54.0"], check=True
+        )
+        shutil.copytree(
+            repository / "examples",
+            temporary / "examples",
+            ignore=shutil.ignore_patterns("__pycache__"),
+        )
+        settings = dict(os.environ)
+        for key in ("INFLOW_API_KEY", "MPP_SECRET_KEY", "INFLOW_BASE_URL", "TARGET_URL"):
+            settings.pop(key, None)
+        for name in ("mpp_buyer", "mpp_seller", "x402_buyer", "x402_seller"):
+            result = subprocess.run(
+                [str(python), "-I", str(temporary / "examples" / f"{name}.py")],
+                cwd=temporary,
+                env=settings,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            assert result.returncode == 1, result
+            assert "INFLOW_API_KEY" in result.stderr, result.stderr
+            assert "Traceback" not in result.stderr, result.stderr
 
 
 if __name__ == "__main__":

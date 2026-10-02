@@ -4,6 +4,9 @@ Python integration for InFlow payments using the Machine Payments Protocol (MPP)
 and x402. The Python distribution and import namespace are both `inflowpay`.
 Python 3.11 or newer is required.
 
+Start with the [runnable Sandbox examples](examples/README.md) for MPP and x402
+Buyers and Sellers, including account setup, commands, and expected results.
+
 ## Working with the repository
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run:
