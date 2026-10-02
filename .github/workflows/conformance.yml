@@ -1,0 +1,69 @@
+name: shared conformance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13", "3.14"]
+    defaults:
+      run:
+        working-directory: sdk
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: sdk
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: "0.11.8"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Read contract pin
+        id: pin
+        run: |
+          node --input-type=module -e '
+            import { readFileSync, appendFileSync } from "node:fs";
+            const { revision } = JSON.parse(readFileSync("conformance/inflow-specs.lock.json", "utf8"));
+            if (!/^[0-9a-f]{40}$/.test(revision)) throw new Error("Invalid contract revision");
+            appendFileSync(process.env.GITHUB_OUTPUT, `revision=${revision}\n`);
+          '
+      - uses: actions/checkout@v7
+        with:
+          repository: inflowpayai/inflow-specs
+          ref: ${{ steps.pin.outputs.revision }}
+          path: contract
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: contract/package.json
+      - run: pnpm install --frozen-lockfile
+        working-directory: contract
+      - run: uv sync --all-extras --all-groups --locked --python "${{ matrix.python }}"
+      - run: node --test scripts/conformance.test.mjs
+      - name: Run shared suites
+        run: |
+          mkdir -p "$RUNNER_TEMP/inflow-python-reports"
+          node scripts/conformance.mjs --contract-root ../contract --output-dir "$RUNNER_TEMP/inflow-python-reports"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: inflow-python-conformance-${{ matrix.python }}
+          path: ${{ runner.temp }}/inflow-python-reports/*.json
+          if-no-files-found: warn
+          retention-days: 14

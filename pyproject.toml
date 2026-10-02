@@ -57,7 +57,7 @@ packages = ["src/inflowpay"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["src", "tests", "scripts", "examples"]
+files = ["src", "tests", "scripts", "examples", "conformance"]
 
 [tool.pytest.ini_options]
 addopts = [
