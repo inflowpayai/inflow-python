@@ -1,0 +1,208 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Verify only; do not publish packages, tags, or releases
+        type: boolean
+        required: true
+        default: true
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - scripts/release.py
+      - scripts/verify_distribution.py
+      - tests/test_release.py
+      - pyproject.toml
+      - uv.lock
+
+permissions:
+  contents: read
+
+concurrency:
+  group: inflow-python-release-${{ github.event_name == 'pull_request' && github.ref || 'manual' }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    defaults:
+      run:
+        working-directory: sdk
+    env:
+      UV_PYTHON: '3.14'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: sdk
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: '0.11.8'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Validate release
+        id: version
+        env:
+          PUBLISH: ${{ github.event_name == 'workflow_dispatch' && !inputs.dry_run }}
+        run: |
+          if [[ "$PUBLISH" == true && ( "$GITHUB_REF" != refs/heads/main || "$GITHUB_REPOSITORY" != inflowpayai/inflow-python ) ]]; then
+            echo 'Publishing requires the upstream main branch.' >&2
+            exit 1
+          fi
+          version=$(python scripts/release.py)
+          if git show-ref --verify --quiet "refs/tags/v$version"; then
+            test "$(git rev-parse "v$version^{commit}")" = "$GITHUB_SHA"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Read verification pins
+        id: pins
+        run: |
+          node --input-type=module -e '
+            import { readFileSync, appendFileSync } from "node:fs";
+            for (const [name, file] of [["contract", "conformance/inflow-specs.lock.json"], ["node", "interop/node.lock.json"]]) {
+              const { revision } = JSON.parse(readFileSync(file));
+              if (!/^[0-9a-f]{40}$/.test(revision)) throw new Error("Invalid revision");
+              appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${revision}\n`);
+            }
+          '
+      - uses: actions/checkout@v7
+        with:
+          repository: inflowpayai/inflow-specs
+          ref: ${{ steps.pins.outputs.contract }}
+          path: contract
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: inflowpayai/inflow-node
+          ref: ${{ steps.pins.outputs.node }}
+          path: node-sdk
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: node-sdk/package.json
+      - run: pnpm install --frozen-lockfile
+        working-directory: node-sdk
+      - run: pnpm build
+        working-directory: node-sdk
+      - run: pnpm install --frozen-lockfile
+        working-directory: contract
+      - name: Verify candidate and build distributions
+        run: |
+          make sync
+          make verify
+          node --test scripts/conformance.test.mjs
+          mkdir -p "$RUNNER_TEMP/release-reports"
+          node scripts/conformance.mjs --contract-root ../contract --output-dir "$RUNNER_TEMP/release-reports"
+          node scripts/interoperability.mjs ../node-sdk "$RUNNER_TEMP/release-reports/interoperability.json"
+          make build
+          uv run --locked python scripts/verify_distribution.py --dist-dir dist
+          python scripts/release.py --dist-dir dist
+          cp coverage.json "$RUNNER_TEMP/release-reports/coverage.json"
+          (cd dist && sha256sum * > "$RUNNER_TEMP/release-reports/SHA256SUMS")
+      - uses: actions/upload-artifact@v7
+        with:
+          name: inflow-python-distributions
+          path: sdk/dist/*
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: inflow-python-release-evidence
+          path: ${{ runner.temp }}/release-reports/*
+          if-no-files-found: warn
+          retention-days: 30
+
+  publish:
+    needs: verify
+    if: github.event_name == 'workflow_dispatch' && !inputs.dry_run && github.ref == 'refs/heads/main' && github.repository == 'inflowpayai/inflow-python'
+    environment: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: actions/download-artifact@v8
+        with:
+          name: inflow-python-distributions
+          path: dist
+      - uses: actions/download-artifact@v8
+        with:
+          name: inflow-python-release-evidence
+          path: reports
+      - run: sha256sum --check ../reports/SHA256SUMS
+        working-directory: dist
+      - run: python scripts/release.py --dist-dir dist
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/*
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+
+  finalize:
+    needs: [verify, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+      UV_PYTHON: '3.14'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: '0.11.8'
+      - uses: actions/download-artifact@v8
+        with:
+          name: inflow-python-distributions
+          path: dist
+      - uses: actions/download-artifact@v8
+        with:
+          name: inflow-python-release-evidence
+          path: reports
+      - name: Verify published artifacts and consumer
+        run: |
+          (cd dist && sha256sum --check ../reports/SHA256SUMS)
+          python scripts/release.py --dist-dir dist --complete
+          python -m pip download --no-deps --only-binary=:all: --index-url https://pypi.org/simple "inflowpay==$VERSION" -d registry-dist
+          test "$(sha256sum registry-dist/*.whl | cut -d ' ' -f1)" = "$(sha256sum dist/*.whl | cut -d ' ' -f1)"
+          make sync
+          uv run --locked python scripts/verify_distribution.py --dist-dir registry-dist
+      - name: Create immutable tag and GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$VERSION"
+          if git show-ref --verify --quiet "refs/tags/$tag"; then
+            test "$(git rev-parse "$tag^{commit}")" = "$GITHUB_SHA"
+          else
+            object=$(gh api "repos/$GITHUB_REPOSITORY/git/tags" -f tag="$tag" -f message="InFlow Python $tag" -f object="$GITHUB_SHA" -f type=commit --jq .sha)
+            gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$object"
+          fi
+          gh release create "$tag" dist/* reports/* --title "InFlow Python $tag" --generate-notes --verify-tag
