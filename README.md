@@ -726,3 +726,6 @@ no timed capability refresh or background polling.
 The [Python–Node interoperability suite](https://github.com/inflowpayai/inflow-python/blob/main/interop/README.md) exercises Buyers and
 Sellers from both SDKs over local HTTP, including payment rejection and settlement
 failure. It uses a synthetic InFlow platform and does not make live payments.
+
+Maintainers can follow the [release instructions](https://github.com/inflowpayai/inflow-python/blob/main/RELEASING.md)
+for versioning, Trusted Publishing setup, dry-runs, and publication.

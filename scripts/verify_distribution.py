@@ -1,5 +1,6 @@
-"""Build from source and verify the wheel outside the checkout."""
+"""Verify distribution files in isolated consumers outside the checkout."""
 
+import argparse
 import os
 import shutil
 import subprocess
@@ -103,13 +104,18 @@ for name in ('mpp', 'mcp', 'web3', 'solana', 'fastapi', 'rfc8785'):
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dist-dir", type=Path)
+    arguments = parser.parse_args()
     repository = Path(__file__).resolve().parents[1]
     with tempfile.TemporaryDirectory(prefix="inflowpay-consumer-") as directory:
         temporary = Path(directory)
-        output = temporary / "dist"
-        subprocess.run(
-            [sys.executable, "-m", "build", "--outdir", str(output), str(repository)], check=True
-        )
+        output = arguments.dist_dir.resolve() if arguments.dist_dir else temporary / "dist"
+        if arguments.dist_dir is None:
+            subprocess.run(
+                [sys.executable, "-m", "build", "--outdir", str(output), str(repository)],
+                check=True,
+            )
         artifacts = sorted(output.iterdir())
         subprocess.run(
             [sys.executable, "-m", "twine", "check", "--strict", *map(str, artifacts)], check=True
