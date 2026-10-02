@@ -24,6 +24,9 @@ outside the checkout to verify imports and the `py.typed` marker.
 The consumer check exercises both the base installation and the combined optional
 dependencies without issuing payments or contacting InFlow.
 
+[Shared conformance checks](https://github.com/inflowpayai/inflow-python/blob/main/conformance/README.md) exercise the public SDK against
+pinned InFlow contract fixtures and produce reports for Python 3.11–3.14.
+
 Protocol and framework dependencies are optional. The `mpp` and `x402` extras
 select payment libraries; `evm` and `svm` select x402 external-wallet dependencies;
 `mcp` selects MCP dependencies for both protocols; `fastapi` selects the optional
