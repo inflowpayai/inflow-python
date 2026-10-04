@@ -1,6 +1,12 @@
 import hashlib
 import io
 import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+import textwrap
 from email.message import Message
 from pathlib import Path
 from urllib.error import HTTPError
@@ -76,3 +82,93 @@ def test_wrong_project(tmp_path: Path) -> None:
     project.write_text('[project]\nname="another-project"\nversion="0.1.0"\n')
     with pytest.raises(ValueError):
         project_version(project)
+
+
+@pytest.mark.parametrize(
+    "event,publish,repository,ref,same_commit,success",
+    [
+        ("pull_request", "false", "inflowpayai/inflow-python", "refs/pull/17/merge", False, True),
+        (
+            "workflow_dispatch",
+            "false",
+            "inflowpayai/inflow-python",
+            "refs/heads/main",
+            False,
+            False,
+        ),
+        ("workflow_dispatch", "true", "inflowpayai/inflow-python", "refs/heads/main", False, False),
+        ("workflow_dispatch", "false", "inflowpayai/inflow-python", "refs/heads/main", True, True),
+        ("workflow_dispatch", "true", "inflowpayai/inflow-python", "refs/heads/main", True, True),
+        ("workflow_dispatch", "true", "nkavian/inflow-python", "refs/heads/main", True, False),
+        (
+            "workflow_dispatch",
+            "true",
+            "inflowpayai/inflow-python",
+            "refs/heads/feature",
+            True,
+            False,
+        ),
+    ],
+)
+def test_workflow_release_tag_guard(
+    tmp_path: Path,
+    event: str,
+    publish: str,
+    repository: str,
+    ref: str,
+    same_commit: bool,
+    success: bool,
+) -> None:
+    root = Path(__file__).resolve().parents[1]
+    workflow = (root / ".github/workflows/release.yml").read_text()
+    step = workflow.split("      - name: Validate release\n", 1)[1].split("      - name:", 1)[0]
+    script = textwrap.dedent(step.split("        run: |\n", 1)[1]).replace(
+        "python scripts/release.py", shlex.quote(sys.executable) + " scripts/release.py"
+    )
+    (tmp_path / "scripts").mkdir()
+    shutil.copy(root / "scripts/release.py", tmp_path / "scripts/release.py")
+    (tmp_path / "pyproject.toml").write_text('[project]\nname="inflowpay"\nversion="0.1.0"\n')
+
+    def git(*arguments: str) -> str:
+        return subprocess.check_output(
+            [
+                "git",
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.com",
+                "-c",
+                "commit.gpgsign=false",
+                "-c",
+                f"core.hooksPath={os.devnull}",
+                *arguments,
+            ],
+            cwd=tmp_path,
+            text=True,
+            stderr=subprocess.PIPE,
+        ).strip()
+
+    git("init")
+    git("add", ".")
+    git("commit", "-m", "Initial version")
+    git("tag", "v0.1.0")
+    if not same_commit:
+        git("commit", "--allow-empty", "-m", "Feature")
+    result = subprocess.run(
+        ["bash", "-e", "-c", script],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        env={
+            **os.environ,
+            "PUBLISH": publish,
+            "GITHUB_EVENT_NAME": event,
+            "GITHUB_REPOSITORY": repository,
+            "GITHUB_REF": ref,
+            "GITHUB_SHA": git("rev-parse", "HEAD"),
+            "GITHUB_OUTPUT": str(tmp_path / "output"),
+        },
+    )
+    assert (result.returncode == 0) is success, result.stderr
+    if success:
+        assert (tmp_path / "output").read_text() == "version=0.1.0\n"

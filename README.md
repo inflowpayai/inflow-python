@@ -30,11 +30,108 @@ pinned InFlow contract fixtures and produce reports for Python 3.11–3.14.
 Protocol and framework dependencies are optional. The `mpp` and `x402` extras
 select payment libraries; `evm` and `svm` select x402 external-wallet dependencies;
 `mcp` selects MCP dependencies for both protocols; `fastapi` selects the optional
-web framework. The base package does not install those extras.
+web framework. The `tap` extra installs Ed25519 cryptography for agent recognition,
+independently of payment libraries. The base package does not install those extras.
 
 Runtime dependencies use compatible version ranges; `uv.lock` records the exact
 versions used in development and CI. MCP dependencies use the 1.x line required by
 pympp. No framework or blockchain package is imported by `import inflowpay`.
+
+## TAP agent recognition
+
+Visa Trusted Agent Protocol (TAP) lets a Seller recognize a request signed by a
+trusted Agent key. It does **not** identify the customer, authorize access to their
+account, approve a purchase, or prove payment. Keep application authentication,
+AEP enrollment, and MPP or x402 payment checks separate.
+
+```sh
+pip install 'inflowpay[tap]'
+```
+
+The import is `inflowpay.tap.seller`. No InFlow account or API key is needed for
+verification. The default resolver retrieves public keys from
+`https://mcp.visa.com/.well-known/jwks`; a successful request needs a signature
+created with a private key registered with that trusted source.
+
+```python
+from inflowpay.tap.seller import TapRequest, TapVerifier
+
+
+async def verify_agent_request(verifier: TapVerifier, method, absolute_url, headers, body):
+    return await verifier.verify(
+        TapRequest(
+            method=method,
+            url=absolute_url,
+            headers=headers,
+            body=body,
+        )
+    )
+```
+
+Create the verifier at server startup and close it at shutdown with `aclose()`
+or an application-lifetime `async with TapVerifier()` scope. Pass that verifier
+to request handlers, as the [runnable TAP example](examples/README.md#tap-agent-recognition)
+does. Creating one per request discards its key cache and process-local replay
+history. `verify()` returns immutable `TapVerificationFacts`; alternatively,
+`await verifier.with_verified(request, async_handler)` invokes your handler only
+after signature verification and the replay claim succeed, returning its result.
+
+Supply the method without changing its case, the absolute external URL with its
+original encoded path and query, and the exact body bytes. `body=None` means no
+body; `b""` is a supplied empty body and still requires signed `content-digest`
+and `content-type` fields. Strings are encoded as UTF-8. Do not parse and
+reserialize JSON before verification. Header names are case-insensitive. A mapping
+can contain string values or lists of values; `httpx.Headers` is also accepted.
+Duplicate values for required fields are rejected, not silently selected.
+Obtain the external origin from trusted deployment configuration rather than
+unvalidated `Forwarded` or `X-Forwarded-*` headers.
+
+This implements InFlow's restricted Visa profile: one `sig2` Ed25519 signature
+covering method, authority, path and query, plus body digest and content type when
+a body is supplied. Signature lifetimes are at most eight minutes. Both
+`ed25519` and `Ed25519` are accepted; facts report `ed25519`. Intent is `browse`
+or `pay`, reflecting the signer's tag, not proof of payment. Repeated signature
+parameters use their last value while retaining their first position, as required
+by Structured Fields; duplicate covered components remain invalid.
+
+### Keys, replay storage and cleanup
+
+`VisaTapKeyResolver` accepts `url`, `cache_ttl` (3600 seconds), `cache_max_age`
+(86400 seconds), `timeout` (3 seconds), `clock` and an optional HTTPX `transport`.
+It shares concurrent refreshes, replaces the whole key set on success, and
+remembers missing identifiers within that cache generation. A failed retrieval
+can use a previously trusted matching key within `cache_max_age`; it cannot
+introduce an unknown key or restore one removed by a successful refresh.
+Redirects are not followed. The resolver owns its transport and closes it with
+`aclose()`; do not share that transport with other clients.
+
+For another trusted key source, pass `key_resolver` to `TapVerifier`. Implement
+the public `TapKeyResolver` protocol's async `resolve(keyid, algorithm)` method,
+returning a trusted `cryptography` `Ed25519PublicKey` or `None`. The request's
+untrusted key identifier must not choose a network destination. The verifier
+still checks the signature. An explicitly supplied resolver remains application-owned;
+the verifier closes only the default resolver it creates itself.
+
+`MemoryTapReplayStore` atomically claims a `(keyid, nonce)` pair until expiration,
+but only within one process. For multiple workers or servers, supply a shared
+`TapReplayStore` with an async, atomic `claim(keyid, nonce, expires)` operation.
+Return `False` for a retained duplicate; let storage failures propagate. Invalid
+signatures never consume a claim, and store failures never invoke the handler.
+Nonce replay protection is not payment idempotency.
+
+Python clocks return Unix seconds (`time.time` by default), rather than Node's
+milliseconds. Validity is checked when verification starts, not again after
+key retrieval or replay storage. Cancelling a caller stops its wait without
+cancelling a shared key refresh needed by other requests. Closing the resolver
+cancels and drains that refresh. Use a resolver on one event loop, and keep it
+open until requests have finished.
+
+`TapVerificationError.code` distinguishes malformed input, digest mismatch,
+invalid lifetime, not-yet-valid or expired signatures, missing or unavailable
+keys, invalid signatures, and replayed nonces. Exceptions from a custom resolver,
+store, or handler propagate unchanged. Your application chooses the HTTP response;
+the example returns a generic 401 for verification failures without exposing key
+service details. TAP does not enable or modify any payment route automatically.
 
 ## Client configuration and lifetime
 

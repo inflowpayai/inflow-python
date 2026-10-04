@@ -34,6 +34,7 @@ fastapi = ["fastapi>=0.142.2,<1"]
 mcp = ["mcp>=1.30.0,<2", "pympp[mcp]>=0.11.0,<0.12", "x402[mcp]>=2.25.0,<3"]
 mpp = ["pympp>=0.11.0,<0.12", "rfc8785>=0.1.4,<0.2"]
 svm = ["x402[svm]>=2.25.0,<3"]
+tap = ["cryptography>=50.0.2,<51"]
 x402 = ["x402>=2.25.0,<3"]
 
 [dependency-groups]

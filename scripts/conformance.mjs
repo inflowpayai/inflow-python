@@ -31,6 +31,8 @@ async function main() {
   if (!values["contract-root"] || !values["output-dir"])
     throw new Error("Use --contract-root PATH --output-dir EXISTING_DIRECTORY");
   const contractRoot = resolve(values["contract-root"]);
+  const outputDirectory = resolve(values["output-dir"]);
+  process.chdir(root);
   const pin = JSON.parse(
     await readFile(
       new URL("../conformance/inflow-specs.lock.json", import.meta.url),
@@ -59,13 +61,13 @@ async function main() {
   process.once("SIGINT", abort);
   process.once("SIGTERM", abort);
   try {
-    for (const suite of ["runtime", "mpp", "x402"]) {
+    for (const suite of ["runtime", "mpp", "x402", "tap"]) {
       if (controller.signal.aborted) throw new Error("Conformance interrupted");
       const fixtures = await import(
         pathToFileURL(join(contractRoot, `fixtures/${suite}.mjs`))
       );
       const output = await open(
-        join(resolve(values["output-dir"]), `${suite}.json`),
+        join(outputDirectory, `${suite}.json`),
         "wx",
         0o600,
       );
@@ -79,7 +81,9 @@ async function main() {
             suites:
               suite === "runtime"
                 ? ["runtime"]
-                : [`${suite}-core`, `${suite}-buyer`, `${suite}-seller`],
+                : suite === "tap"
+                  ? ["tap-seller"]
+                  : [`${suite}-core`, `${suite}-buyer`, `${suite}-seller`],
             supported_features: [],
             unsupported_features:
               suite === "mpp"
@@ -93,7 +97,7 @@ async function main() {
                 : [],
           },
           implementation,
-          command: [python, join(root, "conformance/adapter.py")],
+          command: [python, "-m", "conformance.adapter"],
           contractRoot,
           sdkRoot: root,
           signal: controller.signal,

@@ -41,6 +41,14 @@ artifact per Python version. A failed required case fails the job.
 | MPP     | Public codecs, `BuyerMethod.create_credential`, Seller preparation/validation, and pympp's `broadcast_credential` and `pay` | Wire data, approvals, cancellation, Buyer subscriptions, validation before broadcast, idempotency, and route binding.                                                      |
 | x402    | Public identifier helpers, `Seller.offers`/`route`, `Buyer.prepare`, and `Facilitator.verify`/`settle`                      | Offer construction, sponsorship declarations, approval lifecycle, cancellation, concurrent waits, payment identifiers, and verification/settlement.                        |
 
+The TAP suite calls `TapVerifier.with_verified`, `VisaTapKeyResolver` and
+`MemoryTapReplayStore` through the public `inflowpay.tap.seller` module. Its 92
+cases use real Ed25519 signatures, controlled clocks and loopback key endpoints.
+They cover request binding, Structured Field parameters, validity intervals,
+replay, cache replacement, outages and application-supplied failures. The adapter
+does not parse signatures, construct signature bases or implement verification.
+Handler and replay-claim counts come from the actual callback and store boundary.
+
 The runner owns the loopback HTTP servers, expected request sequences and results.
 The Python process receives inputs, not expected outcomes or response scripts.
 Polling, retry, cancellation, validation and broadcast remain in the SDK and its
