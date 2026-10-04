@@ -36,6 +36,7 @@ def create_app(verifier: TapVerifier, public_origin: str) -> FastAPI:
         has_body = (
             "content-length" in request.headers
             or "transfer-encoding" in request.headers
+            or "content-digest" in request.headers
             or bool(body)
         )
         # PUBLIC_ORIGIN is deployment configuration, never a client-supplied Forwarded header.

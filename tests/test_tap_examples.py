@@ -63,7 +63,8 @@ async def test_http_example_accepts_real_signed_request_then_rejects_replay(
             ).status_code == 413
 
 
-async def test_example_over_real_loopback_http() -> None:
+@pytest.mark.parametrize("method,body", [("POST", b"{}"), ("GET", b"")])
+async def test_example_over_real_loopback_http(method: str, body: bytes) -> None:
     async with TapVerifier(key_resolver=Resolver(), clock=lambda: NOW) as verifier:
         app = tap_seller.create_app(verifier, "https://public.example")
         with socket.socket() as sock:
@@ -78,19 +79,30 @@ async def test_example_over_real_loopback_http() -> None:
                             await running
                             pytest.fail("Example server stopped before startup")
                         await asyncio.sleep(0.001)
-                request = signed(
-                    body=b"{}", method="POST", url="https://public.example/api/catalog"
-                )
+                request = signed(body=body, method=method, url="https://public.example/api/catalog")
                 async with httpx.AsyncClient(
                     base_url=f"http://127.0.0.1:{sock.getsockname()[1]}"
                 ) as client:
-                    response = await client.post(
+                    outbound = client.build_request(
+                        method,
                         "/api/catalog",
                         content=request.body,
                         headers=cast(dict[str, str], request.headers),
                     )
+                    if method == "GET":
+                        assert "content-length" not in outbound.headers
+                        assert "transfer-encoding" not in outbound.headers
+                    tampered = client.build_request(
+                        method,
+                        "/api/catalog",
+                        content=request.body,
+                        headers={**cast(dict[str, str], request.headers), "content-digest": "bad"},
+                    )
+                    assert (await client.send(tampered)).status_code == 401
+                    response = await client.send(outbound)
                     assert response.status_code == 200
                     assert response.json()["agent"]["keyid"] == "test-key"
+                    assert (await client.send(outbound)).status_code == 401
                     assert (await client.get("/api/catalog")).status_code == 401
             finally:
                 server.should_exit = True
