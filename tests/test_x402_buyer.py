@@ -796,6 +796,106 @@ async def test_concurrent_refresh_lifecycle(outcome: str) -> None:
                     await task
 
 
+@pytest.mark.parametrize("remaining_waiter", [False, True])
+async def test_cancelled_refresh_waiter_does_not_log_late_failure(remaining_waiter: bool) -> None:
+    class BlockingPlatform(Platform):
+        async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+            if request.url.path.endswith("x402-supported") and self.requests:
+                self.poll_started.set()
+                await self.release.wait()
+            return await super().handle_async_request(request)
+
+    platform = BlockingPlatform()
+    observed: list[dict[str, Any]] = []
+    loop = asyncio.get_running_loop()
+    previous = loop.get_exception_handler()
+    loop.set_exception_handler(lambda _, event: observed.append(event))
+    try:
+        async with await buyer(platform) as client:
+            first = asyncio.create_task(client.get_supported(refresh=True))
+            await platform.poll_started.wait()
+            shared = client._refresh
+            assert shared is not None
+            second = (
+                asyncio.create_task(client.get_supported(refresh=True))
+                if remaining_waiter
+                else None
+            )
+            await asyncio.sleep(0)
+            first.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await first
+            assert not shared.done()
+            platform.supported = httpx.Response(503)
+            platform.release.set()
+            await asyncio.gather(shared, return_exceptions=True)
+            if second is not None:
+                with pytest.raises(InflowApiError) as failure:
+                    await second
+                assert failure.value is shared.exception()
+            await asyncio.sleep(0)
+            assert observed == []
+            assert client._refresh is None
+            assert client.supports(REQUIREMENT)
+            assert len(platform.requests) == 2
+            platform.supported = SUPPORTED
+            await client.get_supported(refresh=True)
+            assert len(platform.requests) == 3
+    finally:
+        loop.set_exception_handler(previous)
+
+
+@pytest.mark.parametrize("remaining_waiter", [False, True])
+async def test_cancelled_payment_waiter_preserves_late_hook_error(remaining_waiter: bool) -> None:
+    platform = Platform()
+    started, release = asyncio.Event(), asyncio.Event()
+    failure = RuntimeError("application hook failed")
+    calls = 0
+    observed: list[dict[str, Any]] = []
+    loop = asyncio.get_running_loop()
+    previous = loop.get_exception_handler()
+    loop.set_exception_handler(lambda _, event: observed.append(event))
+    try:
+        async with await buyer(platform) as client:
+
+            async def after(_: PaymentCreatedContext) -> None:
+                nonlocal calls
+                calls += 1
+                started.set()
+                await release.wait()
+                raise failure
+
+            client.on_after_payment_creation(after)
+            payment = await client.prepare(REQUIREMENT, RESOURCE)
+            first = asyncio.create_task(payment.await_payload())
+            await started.wait()
+            completion = payment._completion
+            assert completion is not None
+            second = asyncio.create_task(payment.await_payload()) if remaining_waiter else None
+            await asyncio.sleep(0)
+            first.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await first
+            assert not completion.done()
+            release.set()
+            await asyncio.gather(completion, return_exceptions=True)
+            if second is not None:
+                with pytest.raises(RuntimeError) as caught:
+                    await second
+                assert caught.value is failure
+            await asyncio.sleep(0)
+            assert observed == []
+            for _ in range(2):
+                with pytest.raises(RuntimeError) as caught:
+                    await payment.await_payload()
+                assert caught.value is failure
+            assert calls == 1
+            assert payment._completion is completion
+            assert not any(r.url.path.endswith("/cancel") for r in platform.requests)
+    finally:
+        loop.set_exception_handler(previous)
+
+
 async def test_expired_capabilities_refresh() -> None:
     platform = Platform()
     async with await buyer(platform) as client:
