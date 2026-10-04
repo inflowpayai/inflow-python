@@ -1472,6 +1472,9 @@ mpp = [
 svm = [
     { name = "x402", extra = ["svm"] },
 ]
+tap = [
+    { name = "cryptography" },
+]
 x402 = [
     { name = "x402" },
 ]
@@ -1490,6 +1493,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cryptography", marker = "extra == 'tap'", specifier = ">=50.0.2,<51" },
     { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.142.2,<1" },
     { name = "httpx", specifier = ">=0.28.1,<1" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.30.0,<2" },
@@ -1501,7 +1505,7 @@ requires-dist = [
     { name = "x402", extras = ["mcp"], marker = "extra == 'mcp'", specifier = ">=2.25.0,<3" },
     { name = "x402", extras = ["svm"], marker = "extra == 'svm'", specifier = ">=2.25.0,<3" },
 ]
-provides-extras = ["evm", "fastapi", "mcp", "mpp", "svm", "x402"]
+provides-extras = ["evm", "fastapi", "mcp", "mpp", "svm", "tap", "x402"]
 
 [package.metadata.requires-dev]
 dev = [

@@ -60,7 +60,7 @@ jobs:
             exit 1
           fi
           version=$(python scripts/release.py)
-          if git show-ref --verify --quiet "refs/tags/v$version"; then
+          if [[ "$GITHUB_EVENT_NAME" != pull_request ]] && git show-ref --verify --quiet "refs/tags/v$version"; then
             test "$(git rev-parse "v$version^{commit}")" = "$GITHUB_SHA"
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
@@ -106,7 +106,10 @@ jobs:
           node scripts/interoperability.mjs ../node-sdk "$RUNNER_TEMP/release-reports/interoperability.json"
           make build
           uv run --locked python scripts/verify_distribution.py --dist-dir dist
-          python scripts/release.py --dist-dir dist
+          # Feature PRs can keep the published version; release candidates must be uploadable.
+          if [[ "$GITHUB_EVENT_NAME" != pull_request ]]; then
+            python scripts/release.py --dist-dir dist
+          fi
           cp coverage.json "$RUNNER_TEMP/release-reports/coverage.json"
           (cd dist && sha256sum * > "$RUNNER_TEMP/release-reports/SHA256SUMS")
       - uses: actions/upload-artifact@v7

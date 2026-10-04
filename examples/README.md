@@ -1,10 +1,13 @@
-# Run a Sandbox payment
+# Run the examples
 
-These four programs connect to **InFlow Sandbox**. The Sellers run on your computer;
+The four payment programs connect to **InFlow Sandbox**. The Sellers run on your computer;
 configuration, approvals, and payments use Sandbox accounts. They are not simulated
 payments. Run the commands from the repository root with Python 3.11 or newer.
 
 ## Set up your accounts
+
+These accounts are for payment examples. The separate [TAP example](#tap-agent-recognition)
+verifies signed requests without an InFlow account or payment.
 
 1. Register at [InFlow Sandbox](https://sandbox.inflowpay.ai). Accepting payments
    requires a **Seller** account and an API key from its dashboard. A Developer
@@ -132,6 +135,42 @@ verify settlement. These programs print neither payment credentials nor signatur
 
 The Sellers bind only to loopback and have no application login. Add your own
 application authentication when required; paying is not a substitute for logging in.
+
+## TAP agent recognition
+
+The [TAP Seller](tap_seller.py) recognizes signed Agent requests independently of
+payments. It needs no InFlow account, API key, or balance. From this checkout:
+
+```sh
+make sync
+export PUBLIC_ORIGIN='http://127.0.0.1:3002'
+uv run --locked python -m examples.tap_seller
+curl -i http://127.0.0.1:3002/api/catalog
+```
+
+The unsigned request returns HTTP 401 with `{"error":"TAP verification failed"}`.
+For HTTP 200, send a request signed by an Agent whose public key is available from
+Visa's trusted key endpoint. That signature must cover the method, external
+authority, encoded path and query, and, for POST bodies, the exact bytes' digest
+and content type. The response contains verified Agent facts and a small catalog;
+it does not grant access to a customer's account or charge them.
+
+`PUBLIC_ORIGIN` is the origin the Agent signs. Behind a proxy, set it to the public
+HTTPS origin, not the internal listening address. The example deliberately ignores
+client-supplied forwarding headers. A proxy must preserve the signed path, query,
+method, content type and body bytes. The example binds only to loopback, accepts
+GET and POST, limits bodies to one mebibyte, and uses a process-local replay store.
+Production multi-worker applications need a shared atomic replay store.
+
+For a separate application, install `inflowpay[tap,fastapi]` and `uvicorn`. The TAP
+SDK itself has no FastAPI requirement. Keep one `TapVerifier` open for the server's
+lifetime, as `run()` does, then add your own account authorization and payment
+checks inside the protected handler if needed.
+
+The automated example tests create real Ed25519 signatures with synthetic keys
+and exercise both the ASGI application and a loopback HTTP server. They require
+neither a live Visa registration nor a payment. They do not establish that a
+production proxy or registered Agent is configured correctly.
 
 ## Adapt the examples
 

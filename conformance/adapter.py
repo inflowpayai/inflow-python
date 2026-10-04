@@ -13,6 +13,7 @@ from mpp.server.intent import broadcast_credential
 from starlette.responses import JSONResponse
 from x402.schemas import PaymentPayload, PaymentRequirements, ResourceInfo
 
+from conformance.tap import tap_execute
 from inflowpay import ClientOptions, InflowApiError, mpp, x402
 from inflowpay.mpp.buyer import (
     BuyerMethod,
@@ -438,6 +439,10 @@ async def respond(request: Data) -> Data:
                 result = await x402_execute(operation, data)
             elif operation.startswith("runtime."):
                 result = await runtime_execute(operation, data)
+            elif operation == "tap.seller.verify":
+                if data.get("resolver") == "http":
+                    options(data)
+                result = await tap_execute(data)
             else:
                 raise RuntimeError("Unknown operation")
             observation = {"result": result}

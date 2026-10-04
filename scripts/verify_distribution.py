@@ -15,20 +15,56 @@ from importlib.resources import files
 import inflowpay
 assert inflowpay.__version__ == metadata.version('inflowpay')
 assert files('inflowpay').joinpath('py.typed').is_file()
-for name in ('mpp', 'x402', 'fastapi', 'mcp', 'web3', 'solana'):
+for name in ('mpp', 'x402', 'fastapi', 'mcp', 'web3', 'solana', 'cryptography'):
     assert util.find_spec(name) is None, name
 """
 
 OPTIONAL_CONSUMER = """
 import sys
 import inflowpay
-assert not any(name in sys.modules for name in ('mpp', 'x402', 'fastapi', 'mcp', 'web3'))
+assert not any(name in sys.modules for name in
+               ('mpp', 'x402', 'fastapi', 'mcp', 'web3', 'cryptography'))
 from mpp.extensions.mcp import McpClient
 from x402.http.middleware.fastapi import payment_middleware
 from x402.mechanisms.evm.exact import ExactEvmClientScheme
 from x402.mechanisms.svm.exact import ExactSvmClientScheme
 from inflowpay.x402.eip7702 import SponsorshipExtension, SponsorshipSigner
 import x402.mcp
+from inflowpay.tap.seller import TapVerifier
+"""
+
+TAP_CONSUMER = """
+import asyncio, base64, sys
+from importlib import util
+import inflowpay
+assert "cryptography" not in sys.modules
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from inflowpay.tap.seller import TapRequest, TapVerifier, TapVerificationError
+key = Ed25519PrivateKey.from_private_bytes(b"\\x11" * 32)
+parameters = ('("@method" "@authority" "@path" "@query");created=1800000000;'
+              'expires=1800000300;keyid="test";alg="ed25519";nonce="one";tag="agent-browser-auth"')
+base = ('"@method": GET\\n"@authority": merchant.example\\n"@path": /catalog\\n'
+        '"@query": ?\\n"@signature-params": ' + parameters)
+signature = base64.b64encode(key.sign(base.encode())).decode()
+request = TapRequest(method="GET", url="https://merchant.example/catalog", headers={
+    "signature-input": "sig2=" + parameters, "signature": "sig2=:" + signature + ":"})
+class Resolver:
+    async def resolve(self, keyid, algorithm):
+        assert keyid == "test" and algorithm == "ed25519"
+        return key.public_key()
+async def check():
+    async with TapVerifier(key_resolver=Resolver(), clock=lambda: 1800000000) as verifier:
+        facts = await verifier.verify(request)
+        assert facts.verified and facts.intent == "browse"
+        try:
+            await verifier.verify(request)
+        except TapVerificationError as error:
+            assert error.code == "NONCE_REPLAYED"
+        else:
+            raise AssertionError("Replay accepted")
+asyncio.run(check())
+for name in ("mpp", "x402", "mcp", "web3", "solana", "fastapi", "rfc8785"):
+    assert util.find_spec(name) is None, name
 """
 
 MPP_CONSUMER = """
@@ -135,6 +171,15 @@ def main() -> None:
             ["uv", "pip", "install", "--python", str(python), str(wheels[0])], check=True
         )
         subprocess.run([str(python), "-I", "-c", CONSUMER], cwd=temporary, check=True)
+        tap_environment = temporary / "tap-venv"
+        subprocess.run(["uv", "venv", "--python", sys.executable, str(tap_environment)], check=True)
+        tap_python = tap_environment / (
+            "Scripts/python.exe" if sys.platform == "win32" else "bin/python"
+        )
+        subprocess.run(
+            ["uv", "pip", "install", "--python", str(tap_python), f"{wheels[0]}[tap]"], check=True
+        )
+        subprocess.run([str(tap_python), "-I", "-c", TAP_CONSUMER], cwd=temporary, check=True)
         x402_environment = temporary / "x402-venv"
         subprocess.run(
             ["uv", "venv", "--python", sys.executable, str(x402_environment)], check=True
@@ -158,7 +203,7 @@ def main() -> None:
                 "install",
                 "--python",
                 str(python),
-                f"{wheels[0]}[evm,fastapi,mcp,mpp,svm,x402]",
+                f"{wheels[0]}[evm,fastapi,mcp,mpp,svm,tap,x402]",
             ],
             check=True,
         )
@@ -172,9 +217,15 @@ def main() -> None:
             ignore=shutil.ignore_patterns("__pycache__"),
         )
         settings = dict(os.environ)
-        for key in ("INFLOW_API_KEY", "MPP_SECRET_KEY", "INFLOW_BASE_URL", "TARGET_URL"):
+        for key in (
+            "INFLOW_API_KEY",
+            "MPP_SECRET_KEY",
+            "INFLOW_BASE_URL",
+            "TARGET_URL",
+            "PUBLIC_ORIGIN",
+        ):
             settings.pop(key, None)
-        for name in ("mpp_buyer", "mpp_seller", "x402_buyer", "x402_seller"):
+        for name in ("mpp_buyer", "mpp_seller", "x402_buyer", "x402_seller", "tap_seller"):
             result = subprocess.run(
                 [str(python), "-I", str(temporary / "examples" / f"{name}.py")],
                 cwd=temporary,
@@ -184,7 +235,9 @@ def main() -> None:
                 timeout=30,
             )
             assert result.returncode == 1, result
-            assert "INFLOW_API_KEY" in result.stderr, result.stderr
+            assert (
+                "PUBLIC_ORIGIN" if name == "tap_seller" else "INFLOW_API_KEY"
+            ) in result.stderr, result.stderr
             assert "Traceback" not in result.stderr, result.stderr
 
 
