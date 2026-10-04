@@ -5,6 +5,11 @@ The distribution and import name are `inflowpay`. Its version is defined in
 Update the version and refresh `uv.lock` in a reviewed pull request before each
 release. Merging code does not publish a package.
 
+Before version 1.0, incompatible public API changes require a minor increment;
+compatible fixes use a patch increment. From version 1.0, use semantic versioning.
+See the shared [SDK support policy](https://github.com/inflowpayai/inflow-specs#sdk-compatibility-and-support)
+for maintenance of older releases.
+
 ## One-time PyPI setup
 
 Sign in to [PyPI Publishing](https://pypi.org/manage/account/publishing/) and add
