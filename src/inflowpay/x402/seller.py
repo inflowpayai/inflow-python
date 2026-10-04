@@ -33,7 +33,11 @@ class _Cache(Generic[_T]):
             if self.task is None:
                 self.task = asyncio.create_task(self._fetch())
                 self.task.add_done_callback(self._finish)
-            await asyncio.shield(self.task)
+            # shield() logs late failures after cancellation on Python 3.14,
+            # even though _finish observes them. Keep the shared request independent.
+            task = self.task
+            await asyncio.wait((task,))
+            task.result()
         assert self.value is not None
         return self.value.model_copy(deep=True)
 

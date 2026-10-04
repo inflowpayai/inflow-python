@@ -131,7 +131,11 @@ class Buyer(x402Client):
             if self._refresh is None:
                 self._refresh = asyncio.create_task(self._refresh_supported())
                 self._refresh.add_done_callback(self._finish_refresh)
-            await asyncio.shield(self._refresh)
+            # shield() logs late failures after cancellation on Python 3.14,
+            # even though _finish_refresh observes them. Keep the shared request independent.
+            task = self._refresh
+            await asyncio.wait((task,))
+            task.result()
         return self._supported.model_copy(deep=True)
 
     async def _refresh_supported(self) -> None:

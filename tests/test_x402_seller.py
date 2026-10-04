@@ -264,6 +264,48 @@ async def test_refresh_concurrency_cancellation_and_failure() -> None:
     assert platform.closed
 
 
+@pytest.mark.parametrize("operation", ["config", "supported"])
+@pytest.mark.parametrize("remaining_waiter", [False, True])
+async def test_cancelled_refresh_waiter_does_not_log_late_failure(
+    operation: str, remaining_waiter: bool
+) -> None:
+    platform = Platform()
+    observed: list[dict[str, Any]] = []
+    loop = asyncio.get_running_loop()
+    previous = loop.get_exception_handler()
+    loop.set_exception_handler(lambda _, event: observed.append(event))
+    try:
+        async with await Seller.create(platform.options()) as seller:
+            platform.block = operation
+            refresh = seller.config if operation == "config" else seller.get_supported
+            first = asyncio.create_task(refresh(refresh=True))
+            await platform.started.wait()
+            cache = seller._config if operation == "config" else seller._supported
+            shared = cache.task
+            assert shared is not None
+            second = asyncio.create_task(refresh(refresh=True)) if remaining_waiter else None
+            await asyncio.sleep(0)
+            first.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await first
+            assert not shared.done()
+            setattr(platform, operation, httpx.Response(503))
+            platform.release.set()
+            await asyncio.gather(shared, return_exceptions=True)
+            if second is not None:
+                with pytest.raises(InflowApiError) as failure:
+                    await second
+                assert failure.value is shared.exception()
+            await asyncio.sleep(0)
+            assert observed == []
+            assert cache.task is None
+            assert sum(r.url.path.endswith(operation) for r in platform.requests) == 2
+            await refresh()
+            assert len(platform.requests) == 3
+    finally:
+        loop.set_exception_handler(previous)
+
+
 async def test_fixed_facilitator_snapshot_and_recreation() -> None:
     platform = Platform()
     async with await Facilitator.create(platform.options()) as facilitator:

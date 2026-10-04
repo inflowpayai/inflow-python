@@ -106,8 +106,10 @@ class PreparedPayment:
         completion = self._completion
         self._waiters += 1
         try:
-            # A cancelled waiter must not cancel another caller's wait for this same payment.
-            result = await asyncio.shield(completion)
+            # Keep cancellation local to this waiter without shield() logging late
+            # hook errors on Python 3.14; _observe_completion already observes them.
+            await asyncio.wait((completion,))
+            result = completion.result()
             return EncodedPayment(
                 result.encoded_payload,
                 result.payment_payload.model_copy(deep=True),
