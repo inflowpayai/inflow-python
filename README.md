@@ -415,6 +415,13 @@ when application authentication uses `Authorization`; pympp then uses
 `Payment-Authorization` for the payment credential. The decorator does not implement
 your application's authentication or access-control policy.
 
+pympp's `pay` decorator returns HTTP `402` for payment errors, including a pending
+settlement whose Problem Details body has `status: 503`. The InFlow Seller preserves
+that problem; the HTTP status is chosen by pympp. Node's middleware uses the problem's
+status for the HTTP response too. Inspect the problem body rather than interpreting
+every `402` as a declined payment. Keep the original transaction and credential when
+checking or retrying a pending settlement; do not create a replacement purchase.
+
 ### Prices and payment verification
 
 For `method="inflow"`, `charge_request` preserves the decimal price, sets the

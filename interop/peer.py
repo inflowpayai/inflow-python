@@ -42,13 +42,34 @@ async def run(settings: dict[str, Any]) -> None:
     options = ClientOptions(base_url=settings["Platform"], api_key=f"test-only-{role}-key")
     async with AsyncExitStack() as stack:
         if role == "buyer":
+            if settings.get("StatusID"):
+                if protocol == "mpp":
+                    mpp_status = await stack.enter_async_context(BuyerMethod(options))
+                    snapshots = [
+                        await mpp_status.get_payment_status(settings["StatusID"]) for _ in range(2)
+                    ]
+                else:
+                    x402_status = await stack.enter_async_context(await Buyer.create(options))
+                    snapshots = [
+                        await x402_status.get_payment_status(settings["StatusID"]) for _ in range(2)
+                    ]
+                print(json.dumps(snapshots), flush=True)
+                return
             if protocol == "mpp":
                 method = await stack.enter_async_context(
                     BuyerMethod(
                         options,
-                        method="tempo" if variant == "tempo" else "inflow",
+                        method=variant if variant in ("tempo", "card") else "inflow",
                         intent="subscription" if variant == "subscription" else "charge",
                         subscription_id=settings.get("SubscriptionID"),
+                        instrument_id=settings.get("InstrumentID"),
+                        merchant={
+                            "name": "Interop shop",
+                            "url": "https://shop.example",
+                            "countryCode": "US",
+                        }
+                        if variant == "card"
+                        else None,
                         poll_interval=0,
                         pending_timeout=5,
                     )
@@ -56,7 +77,13 @@ async def run(settings: dict[str, Any]) -> None:
                 transport: httpx.AsyncBaseTransport = payment_transport([method])
             else:
                 buyer = await stack.enter_async_context(
-                    await Buyer.create(options, poll_interval=0, pending_timeout=5)
+                    await Buyer.create(
+                        options,
+                        prefer=("instrument",) if variant == "instrument" else ("balance", "exact"),
+                        instrument_id=settings.get("InstrumentID"),
+                        poll_interval=0,
+                        pending_timeout=5,
+                    )
                 )
                 transport = x402AsyncTransport(buyer)
             http = await stack.enter_async_context(
@@ -95,15 +122,27 @@ async def run(settings: dict[str, Any]) -> None:
 
         if protocol == "mpp":
             seller = await stack.enter_async_context(
-                await MppSeller.create(options, method="tempo" if variant == "tempo" else "inflow")
+                await MppSeller.create(
+                    options, method=variant if variant in ("tempo", "card", "stripe") else "inflow"
+                )
             )
-            terms = seller.charge_request(
+            terms = (
+                seller.card_request
+                if variant == "card"
+                else seller.stripe_request
+                if variant == "stripe"
+                else seller.charge_request
+            )(
                 {
                     "amount": "10000",
                     "currency": "0x20c0000000000000000000000000000000000000",
                     "recipient": "0x1111111111111111111111111111111111111111",
                 }
                 if variant == "tempo"
+                else {"amount": "1.25"}
+                if variant in ("card", "stripe")
+                else {"amount": "1.25", "currency": "USD"}
+                if variant == "instrument"
                 else {"amount": "0.01", "currency": "USDC"}
             )
 
@@ -130,7 +169,9 @@ async def run(settings: dict[str, Any]) -> None:
             resource = x402ResourceServer(facilitator)
             for registration in await x_seller.scheme_registrations(schemes=[variant]):
                 resource.register(registration["network"], registration["server"])
-            route = await x_seller.route("0.01 USDC", schemes=[variant])
+            route = await x_seller.route(
+                "1.25 USD" if variant == "instrument" else "0.01 USDC", schemes=[variant]
+            )
             app.middleware("http")(payment_middleware({"GET /paid": route}, resource))
 
             @app.get("/paid")

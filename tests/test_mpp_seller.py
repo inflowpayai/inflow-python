@@ -155,6 +155,36 @@ async def test_framework_roundtrip(requires_auth: bool) -> None:
     assert platform.closed
 
 
+async def test_framework_preserves_pending_problem_with_upstream_402() -> None:
+    platform = Platform()
+    problem = {
+        "type": "https://paymentauth.org/problems/settlement-unavailable",
+        "title": "Settlement Pending",
+        "status": 503,
+        "detail": "Awaiting authentication",
+    }
+    platform.result = {"problem": problem}
+    async with (
+        await Seller.create(options(platform)) as seller,
+        httpx.AsyncClient(
+            transport=httpx.ASGITransport(app_for(seller)), base_url="https://seller.example"
+        ) as client,
+    ):
+        credential = await credential_for(client)
+        response = await client.get("/paid", headers={"Authorization": credential})
+        assert response.status_code == 402
+        assert response.headers["content-type"] == "application/problem+json"
+        assert "payment-receipt" not in response.headers
+        body = response.json()
+        assert {key: body[key] for key in problem} == problem
+        assert "ok" not in body
+        assert [r.url.path for r in platform.requests] == [
+            "/v1/mpp/config",
+            "/v1/mpp/validate",
+            "/v1/mpp/broadcast",
+        ]
+
+
 @pytest.mark.parametrize(
     "response", [None, {}, {"success": False, "problem": PROBLEM}, {"success": True}]
 )
