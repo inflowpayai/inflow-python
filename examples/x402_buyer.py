@@ -15,13 +15,18 @@ async def run() -> None:
     if not key:
         raise ValueError("Set INFLOW_API_KEY to your Sandbox buyer API key.")
     target = os.environ.get("TARGET_URL", "http://127.0.0.1:3001/api/widgets")
+    scheme = os.environ.get("X402_SCHEME", "default")
+    if scheme not in ("default", "instrument"):
+        raise ValueError("X402_SCHEME must be default or instrument")
     print("Requesting resource; approve in the Sandbox dashboard if requested.", flush=True)
     # No external wallet or recovery hook is registered: a failed paid retry stops here.
     async with (
         await Buyer.create(
             ClientOptions(
                 environment="sandbox", api_key=key, base_url=os.environ.get("INFLOW_BASE_URL")
-            )
+            ),
+            prefer=("instrument",) if scheme == "instrument" else ("balance", "exact"),
+            instrument_id=os.environ.get("INFLOW_INSTRUMENT_ID"),
         ) as buyer,
         httpx.AsyncClient(transport=x402AsyncTransport(buyer), follow_redirects=False) as http,
     ):

@@ -5,7 +5,7 @@ import sys
 import httpx
 
 from inflowpay import ClientOptions
-from inflowpay.mpp import decode_receipt
+from inflowpay.mpp import WireObject, decode_receipt
 from inflowpay.mpp.buyer import BuyerMethod, payment_transport
 
 
@@ -14,13 +14,29 @@ async def run() -> None:
     if not key:
         raise ValueError("Set INFLOW_API_KEY to your Sandbox buyer API key.")
     target = os.environ.get("TARGET_URL", "http://127.0.0.1:3000/api/widgets")
+    payment_method = os.environ.get("MPP_METHOD", "inflow")
+    if payment_method not in ("inflow", "card"):
+        raise ValueError(
+            "MPP_METHOD must be inflow or card; this Buyer does not issue Stripe tokens."
+        )
+    merchant: WireObject | None = None
+    if payment_method == "card":
+        # Supply the actual merchant context; the SDK does not infer it from the target URL.
+        merchant = {
+            "name": os.environ.get("CARD_MERCHANT_NAME", ""),
+            "url": os.environ.get("CARD_MERCHANT_URL", ""),
+            "countryCode": os.environ.get("CARD_MERCHANT_COUNTRY", ""),
+        }
     print("Requesting resource; approve in the Sandbox dashboard if requested.", flush=True)
     # The platform key belongs to BuyerMethod, never to the merchant HTTP client.
     async with (
         BuyerMethod(
             ClientOptions(
                 environment="sandbox", api_key=key, base_url=os.environ.get("INFLOW_BASE_URL")
-            )
+            ),
+            method=payment_method,
+            merchant=merchant,
+            instrument_id=os.environ.get("INFLOW_INSTRUMENT_ID"),
         ) as method,
         httpx.AsyncClient(transport=payment_transport([method]), follow_redirects=False) as http,
     ):

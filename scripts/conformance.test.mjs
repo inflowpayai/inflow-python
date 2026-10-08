@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { runtimeCases } from "../conformance/runtime-cases.mjs";
-import { checkContract } from "./conformance.mjs";
+import {
+  acceptsDescriptionFailure,
+  checkContract,
+  descriptionDiagnostic,
+} from "./conformance.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 test("runtime cases preserve fixtures and use public operations", () => {
@@ -104,4 +108,137 @@ test("missing output configuration fails before launching an adapter", () => {
     result.stderr,
     /--contract-root PATH --output-dir EXISTING_DIRECTORY/,
   );
+});
+
+test("description allowance requires the exact failure and a passing diagnostic", () => {
+  const report = {
+    completed: true,
+    passed: false,
+    implementation: { dependencies: { pympp: "0.11.0" } },
+    results: [
+      {
+        case_id: "mpp.card.verify-reference",
+        suite: "mpp-seller",
+        status: "failed",
+        message: "Unexpected platform request at exchange 2",
+      },
+    ],
+  };
+  const diagnostic = {
+    completed: true,
+    passed: true,
+    results: [{ case_id: "mpp.card.verify-reference", status: "passed" }],
+  };
+  assert.equal(acceptsDescriptionFailure(report, diagnostic), true);
+  for (const change of [
+    (r) => {
+      r.completed = false;
+    },
+    (r) => {
+      r.passed = true;
+    },
+    (r) => {
+      r.runner_error = "Adapter failed";
+    },
+    (r) => {
+      r.implementation.dependencies.pympp = "0.12.0";
+    },
+    (r) => {
+      r.results[0].case_id = "another-case";
+    },
+    (r) => {
+      r.results[0].suite = "mpp-buyer";
+    },
+    (r) => {
+      r.results[0].status = "skipped";
+    },
+    (r) => {
+      r.results[0].status = "passed";
+    },
+    (r) => {
+      r.results[0].message = "Unexpected platform request at exchange 3";
+    },
+    (r) => {
+      r.results.push({ case_id: "other", status: "failed" });
+    },
+    (r) => {
+      r.results.push({ case_id: "other", status: "not_run" });
+    },
+  ]) {
+    const changed = structuredClone(report);
+    change(changed);
+    assert.equal(acceptsDescriptionFailure(changed, diagnostic), false);
+  }
+  for (const change of [
+    (d) => {
+      d.completed = false;
+    },
+    (d) => {
+      d.passed = false;
+    },
+    (d) => {
+      d.runner_error = "Failure";
+    },
+    (d) => {
+      d.results = [];
+    },
+    (d) => {
+      d.results[0].case_id = "other";
+    },
+    (d) => {
+      d.results[0].status = "failed";
+    },
+  ]) {
+    const changed = structuredClone(diagnostic);
+    change(changed);
+    assert.equal(acceptsDescriptionFailure(report, changed), false);
+  }
+  assert.equal(acceptsDescriptionFailure(report), false);
+});
+
+test("description diagnostic changes only outbound descriptions and their platform echoes", () => {
+  const credential = {
+    challenge: {
+      description: "Test purchase",
+      expires: "2030",
+      request: "encoded",
+    },
+  };
+  const index = {
+    cases: [
+      {
+        id: "mpp.card.verify-reference",
+        input: { credential },
+        platform: {
+          exchanges: [
+            { request: { method: "GET" } },
+            {
+              request: { json: { credential } },
+              response: {
+                json: { credential, challenge: credential.challenge },
+              },
+            },
+            { request: { json: { credential } } },
+          ],
+        },
+      },
+    ],
+  };
+  const before = structuredClone(index);
+  const diagnostic = descriptionDiagnostic(index);
+  assert.deepEqual(index, before);
+  const expected = structuredClone(before);
+  // Independent objects represent the JSON fixture, rather than shared references.
+  const unaliased = JSON.parse(JSON.stringify(expected));
+  delete unaliased.cases[0].platform.exchanges[1].request.json.credential
+    .challenge.description;
+  delete unaliased.cases[0].platform.exchanges[2].request.json.credential
+    .challenge.description;
+  delete unaliased.cases[0].platform.exchanges[1].response.json.credential
+    .challenge.description;
+  delete unaliased.cases[0].platform.exchanges[1].response.json.challenge
+    .description;
+  assert.deepEqual(diagnostic, unaliased);
+  assert.equal(diagnostic.cases.length, 1);
+  assert.throws(() => descriptionDiagnostic({ cases: [] }), /fixture changed/);
 });

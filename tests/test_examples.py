@@ -15,8 +15,13 @@ from x402.schemas import PaymentPayload, PaymentRequirements
 
 from inflowpay import ClientOptions
 from inflowpay.mpp import encode
+from test_card_buyer import MERCHANT
+from test_card_seller import PAYLOAD as CARD_PAYLOAD
+from test_card_seller import platform as card_platform
+from test_instrument_parity import card_config
 from test_mpp_seller import ID, PROBLEM
 from test_mpp_seller import Platform as MppPlatform
+from test_stripe_seller import platform as stripe_platform
 from test_x402_seller import Platform as X402Platform
 
 MODULES = (mpp_buyer, mpp_seller, x402_buyer, x402_seller)
@@ -24,7 +29,18 @@ MODULES = (mpp_buyer, mpp_seller, x402_buyer, x402_seller)
 
 @pytest.fixture(autouse=True)
 def example_environment(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    for name in ("INFLOW_API_KEY", "MPP_SECRET_KEY", "TARGET_URL", "INFLOW_BASE_URL"):
+    for name in (
+        "INFLOW_API_KEY",
+        "MPP_SECRET_KEY",
+        "TARGET_URL",
+        "INFLOW_BASE_URL",
+        "MPP_METHOD",
+        "X402_SCHEME",
+        "INFLOW_INSTRUMENT_ID",
+        "CARD_MERCHANT_NAME",
+        "CARD_MERCHANT_URL",
+        "CARD_MERCHANT_COUNTRY",
+    ):
         monkeypatch.delenv(name, raising=False)
     yield
 
@@ -56,7 +72,7 @@ def test_main_success_and_interrupt(
     "protocol,outcome",
     [
         (protocol, outcome)
-        for protocol in ("mpp", "x402")
+        for protocol in ("mpp", "x402", "card", "instrument")
         for outcome in ("paid", "free", "rejected", "missing", "malformed")
     ]
     + [("x402", "settle-failed"), ("x402", "legacy-receipt")],
@@ -64,7 +80,23 @@ def test_main_success_and_interrupt(
 async def test_example_pair(
     protocol: str, outcome: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    mode = protocol
+    protocol = "mpp" if mode == "card" else "x402" if mode == "instrument" else protocol
     platform = MppPlatform() if protocol == "mpp" else X402Platform()
+    if mode == "card":
+        platform = card_platform()
+        monkeypatch.setenv("MPP_METHOD", "card")
+        monkeypatch.setenv("CARD_MERCHANT_NAME", "Test Seller")
+        monkeypatch.setenv("CARD_MERCHANT_URL", "https://seller.example")
+        monkeypatch.setenv("CARD_MERCHANT_COUNTRY", "US")
+    if mode == "instrument":
+        assert isinstance(platform, X402Platform)
+        platform.config = card_config().model_dump(by_alias=True)
+        platform.supported = {
+            "kinds": [{"scheme": "instrument", "network": "inflow:1", "x402Version": 2}]
+        }
+        monkeypatch.setenv("X402_SCHEME", "instrument")
+        monkeypatch.setenv("INFLOW_INSTRUMENT_ID", ID)
     if outcome == "rejected":
         if isinstance(platform, MppPlatform):
             platform.validation = {"success": False, "problem": PROBLEM}
@@ -91,7 +123,7 @@ async def test_example_pair(
                     if protocol == "mpp":
                         credential = {
                             "challenge": value["challenge"],
-                            "payload": {"transactionId": ID},
+                            "payload": CARD_PAYLOAD if mode == "card" else {"transactionId": ID},
                         }
                         return httpx.Response(
                             200, json={"state": "ready", "credential": encode(credential)}
@@ -111,6 +143,18 @@ async def test_example_pair(
                             "paymentPayload": payment,
                         },
                     )
+                if mode == "card" and path.endswith("/broadcast"):
+                    assert isinstance(platform, MppPlatform)
+                    challenge_id = json.loads(request.content)["credential"]["challenge"]["id"]
+                    platform.result = {
+                        "receipt": {
+                            "method": "card",
+                            "status": "success",
+                            "challengeId": challenge_id,
+                            "reference": "card-test",
+                            "timestamp": "2026-10-08T00:00:00Z",
+                        }
+                    }
                 return await platform.handle_async_request(request)
             assert "x-api-key" not in request.headers
             merchant_requests.append(request)
@@ -159,9 +203,11 @@ async def test_example_pair(
         environment="sandbox", api_key="secret", base_url="https://platform.test"
     )
     application = (
-        mpp_seller.application(options, "test-secret")
+        mpp_seller.application(
+            options, "test-secret", method="card" if mode == "card" else "inflow"
+        )
         if protocol == "mpp"
-        else x402_seller.application(options)
+        else x402_seller.application(options, instrument=mode == "instrument")
     )
     async with application as app, httpx.ASGITransport(app) as app_transport:
         buyer = mpp_buyer if protocol == "mpp" else x402_buyer
@@ -174,6 +220,11 @@ async def test_example_pair(
         else:
             await buyer.run()
     assert len(created) == (0 if outcome == "free" else 1)
+    if created and mode == "card":
+        assert created[0]["options"] == {"merchant": MERCHANT}
+    if created and mode == "instrument":
+        assert created[0]["instrumentId"] == ID
+        assert created[0]["accept"]["scheme"] == "instrument"
     assert len(merchant_requests) == (1 if outcome == "free" else 2)
     assert all(isinstance(value, RoutingTransport) and value.closed for value in owned)
     if outcome == "rejected":
@@ -222,7 +273,7 @@ async def test_x402_seller_rejects_empty_offers(monkeypatch: pytest.MonkeyPatch)
     platform.config["paymentMethods"] = []
     monkeypatch.setattr(httpx, "AsyncHTTPTransport", lambda **kwargs: platform)
     monkeypatch.setattr(httpx._client, "AsyncHTTPTransport", lambda **kwargs: platform)
-    with pytest.raises(ValueError, match="no USDC"):
+    with pytest.raises(ValueError, match="no matching"):
         async with x402_seller.application(ClientOptions(api_key="secret")):
             pytest.fail("empty offers must not start a server")
     assert platform.closed
@@ -232,3 +283,52 @@ async def test_mpp_seller_requires_challenge_secret(monkeypatch: pytest.MonkeyPa
     monkeypatch.setenv("INFLOW_API_KEY", "secret")
     with pytest.raises(ValueError, match="MPP_SECRET_KEY"):
         await mpp_seller.run()
+
+
+@pytest.mark.parametrize("module", MODULES)
+async def test_invalid_example_method(module: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("INFLOW_API_KEY", "test-key")
+    monkeypatch.setenv("MPP_SECRET_KEY", "test-secret")
+    monkeypatch.setenv("MPP_METHOD", "unsupported")
+    monkeypatch.setenv("X402_SCHEME", "unsupported")
+    with pytest.raises(ValueError, match="must be"):
+        await module.run()
+
+
+@pytest.mark.parametrize("mode", ["stripe", "card", "instrument"])
+async def test_card_seller_startup(mode: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("INFLOW_API_KEY", "secret")
+    monkeypatch.setenv("MPP_SECRET_KEY", "test-secret")
+    if mode == "instrument":
+        platform: MppPlatform | X402Platform = X402Platform()
+        assert isinstance(platform, X402Platform)
+        platform.config = card_config().model_dump(by_alias=True)
+        platform.supported = {
+            "kinds": [{"scheme": "instrument", "network": "inflow:1", "x402Version": 2}]
+        }
+        monkeypatch.setenv("X402_SCHEME", mode)
+    else:
+        platform = stripe_platform() if mode == "stripe" else card_platform()
+        monkeypatch.setenv("MPP_METHOD", mode)
+    monkeypatch.setattr(httpx, "AsyncHTTPTransport", lambda **kwargs: platform)
+    monkeypatch.setattr(httpx._client, "AsyncHTTPTransport", lambda **kwargs: platform)
+    called = []
+
+    async def serve(server: uvicorn.Server, sockets: object = None) -> None:
+        called.append(True)
+        assert isinstance(server.config.app, FastAPI)
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(server.config.app), base_url="http://localhost"
+        ) as client:
+            response = await client.get("/api/widgets")
+            assert response.status_code == 402
+            if mode != "instrument":
+                from mpp import Challenge
+
+                challenge = Challenge.from_www_authenticate(response.headers["www-authenticate"])
+                assert challenge.method == mode
+                assert challenge.request["amount"] == "125"
+
+    monkeypatch.setattr(uvicorn.Server, "serve", serve)
+    await (x402_seller if mode == "instrument" else mpp_seller).run()
+    assert called == [True] and platform.closed

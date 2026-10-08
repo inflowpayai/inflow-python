@@ -60,6 +60,7 @@ class Buyer(x402Client):
         prefer: Sequence[str],
         poll_interval: float,
         pending_timeout: float,
+        instrument_id: str | None = None,
     ) -> None:
         super().__init__()
         self._client = client
@@ -69,6 +70,7 @@ class Buyer(x402Client):
         self._prefer = tuple(prefer)
         self._poll_interval = poll_interval
         self._pending_timeout = pending_timeout
+        self._instrument_id = instrument_id
         self._payments: WeakSet[PreparedPayment] = WeakSet()
         self._closed = False
 
@@ -80,6 +82,7 @@ class Buyer(x402Client):
         prefer: Sequence[str] = ("balance", "exact"),
         poll_interval: float = 5,
         pending_timeout: float = 900,
+        instrument_id: str | None = None,
     ) -> Self:
         validate_wait(poll_interval, pending_timeout)
         client = Client(options)
@@ -93,6 +96,7 @@ class Buyer(x402Client):
                 prefer=prefer,
                 poll_interval=poll_interval,
                 pending_timeout=pending_timeout,
+                instrument_id=instrument_id,
             )
         except BaseException:
             await client.aclose()
@@ -306,6 +310,8 @@ class Buyer(x402Client):
         )
         if payment_id is not None:
             body["remotePaymentId"] = payment_id
+        if context.selected_requirements.scheme == "instrument" and self._instrument_id is not None:
+            body["instrumentId"] = self._instrument_id
         # Creation is not retried: without a remotePaymentId it creates a second approval.
         created = response_object(
             await self._client.request("POST", "/v1/transactions/x402", body=body)
@@ -323,6 +329,12 @@ class Buyer(x402Client):
         )
         self._payments.add(prepared)
         return prepared
+
+    async def get_payment_status(
+        self, transaction_id: str, *, retries: int = 0
+    ) -> dict[str, object]:
+        self._check_open()
+        return await self._client.get_payment_status(transaction_id, retries=retries)
 
     async def get_x402_payload(self, transaction_id: str) -> dict[str, object]:
         self._check_open()

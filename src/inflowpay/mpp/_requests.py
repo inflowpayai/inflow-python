@@ -25,6 +25,8 @@ def _optional_strings(data: WireObject, fields: tuple[str, ...], pattern: str = 
 
 def validate_request(method: str, intent: str, value: object) -> WireObject:
     request = object_value(value)
+    if method == "card" and intent == "charge":
+        return _card_request(request)
     if method == "inflow" and intent in ("charge", "subscription"):
         amount = _match(request.get("amount"), r"-?[0-9]+(?:\.[0-9]+)?")
         string(request.get("currency"))
@@ -91,9 +93,74 @@ def validate_request(method: str, intent: str, value: object) -> WireObject:
     return deepcopy(request)
 
 
+def _card_request(request: WireObject) -> WireObject:
+    amount = _match(request.get("amount"), r"[1-9][0-9]{0,7}")
+    if int(amount) < 50 or request.get("currency") != "usd":
+        raise MppCodecError("CARD requires USD and at least 50 cents")
+    details = object_value(request.get("methodDetails"))
+    networks = details.get("acceptedNetworks")
+    if not isinstance(networks, list) or not networks or any(item != "visa" for item in networks):
+        raise MppCodecError("CARD requires the Visa network")
+    recipient, merchant = string(request.get("recipient")), string(details.get("merchantName"))
+    if (
+        len(recipient.encode("utf-16-le")) // 2 > 255
+        or len(merchant.encode("utf-16-le")) // 2 > 255
+    ):
+        raise MppCodecError("CARD recipient and merchant name allow at most 255 characters")
+    key = object_value(details.get("encryptionJwk"))
+    if key.get("kty") != "RSA" or key.get("alg") != "RSA-OAEP-256" or key.get("use") != "enc":
+        raise MppCodecError("CARD requires an RSA-OAEP-256 public encryption key")
+    normalized: WireObject = {
+        "acceptedNetworks": deepcopy(networks),
+        "merchantName": merchant,
+        "encryptionJwk": {
+            "kty": "RSA",
+            "alg": "RSA-OAEP-256",
+            "use": "enc",
+            "kid": string(key.get("kid")),
+            "n": _match(key.get("n"), r"[A-Za-z0-9_-]+"),
+            "e": _match(key.get("e"), r"[A-Za-z0-9_-]+"),
+        },
+    }
+    if "billingRequired" in details:
+        if type(details["billingRequired"]) is not bool:
+            raise MppCodecError("billingRequired must be a boolean")
+        normalized["billingRequired"] = details["billingRequired"]
+    result: WireObject = {
+        "amount": amount,
+        "currency": "usd",
+        "recipient": recipient,
+        "methodDetails": normalized,
+    }
+    for field in ("externalId", "description"):
+        if field in request:
+            value = request[field]
+            if not isinstance(value, str) or (
+                field == "externalId" and len(value.encode("utf-16-le")) // 2 > 255
+            ):
+                raise MppCodecError(f"Invalid CARD {field}")
+            result[field] = value
+    return result
+
+
 def validate_payload(method: str, value: object) -> WireObject:
     payload = object_value(value)
-    if method == "tempo":
+    if method == "card":
+        encrypted = string(payload.get("encryptedPayload"))
+        if len(encrypted.encode("utf-16-le")) // 2 > 16384 or payload.get("network") != "visa":
+            raise MppCodecError("Invalid CARD encrypted payload or network")
+        _match(payload.get("panLastFour"), r"[0-9]{4}")
+        _match(payload.get("panExpirationMonth"), r"(?:0[1-9]|1[0-2])")
+        _match(payload.get("panExpirationYear"), r"[0-9]{4}")
+        for field in ("cardholderFullName", "paymentAccountReference"):
+            if field in payload and not isinstance(payload[field], str):
+                raise MppCodecError(f"Invalid CARD {field}")
+        if "billingAddress" in payload:
+            address = object_value(payload["billingAddress"])
+            for field in ("line1", "line2", "city", "state", "zip", "countryCode"):
+                if field in address and not isinstance(address[field], str):
+                    raise MppCodecError(f"Invalid CARD billing {field}")
+    elif method == "tempo":
         _optional_strings(payload, ("hash", "signature"), r"0x[0-9a-fA-F]+")
         _optional_strings(payload, ("transactionId",))
         kind = payload.get("type")

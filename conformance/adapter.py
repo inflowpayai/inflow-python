@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 import httpx
 from fastapi import FastAPI, Request
 from mpp import Challenge, Credential, Receipt
+from mpp.errors import InvalidChallengeError
 from mpp.server.decorator import pay
 from mpp.server.intent import broadcast_credential
 from starlette.responses import JSONResponse
@@ -51,7 +52,7 @@ def options(data: Data, transport: httpx.AsyncBaseTransport | None = None) -> Cl
 def classify(error: BaseException, operation: str, data: Data) -> Data:
     details: Data = {}
     if isinstance(error, InflowApiError):
-        if operation.startswith("x402."):
+        if operation.startswith("x402.") or operation.endswith(".payment-status"):
             return {
                 "code": "api-error",
                 "message": "InFlow API request failed.",
@@ -65,13 +66,15 @@ def classify(error: BaseException, operation: str, data: Data) -> Data:
             details["transaction_id"] = error.transaction_id
     elif isinstance(error, MppPaymentFailedError):
         code = "payment-failed"
+        if error.transaction_id is not None:
+            details["transaction_id"] = error.transaction_id
         if error.problem is not None:
             details["problem"] = error.problem
     elif isinstance(error, MppCredentialProblemError):
         code = "payment-failed"
         if data.get("include_problem", True):
             details["problem"] = error.problem
-    elif isinstance(error, MppMalformedCredentialError):
+    elif isinstance(error, (MppMalformedCredentialError, InvalidChallengeError)):
         code = "invalid-credential"
     elif isinstance(error, mpp.MppCodecError):
         code = (
@@ -86,18 +89,27 @@ def classify(error: BaseException, operation: str, data: Data) -> Data:
         if error.status is not None:
             details["status"] = error.status
     elif (
-        type(error) is ValueError
-        and operation in ("x402.seller.offers", "x402.seller.route")
-        and str(error)
-        in (
-            "Price must be '$1.00', '1.00 USDC', or a plain amount with currency",
-            "A currency is required for a plain amount",
-            "Price cannot be represented in the asset's decimal precision",
+        (
+            type(error) is ValueError
+            and operation in ("x402.seller.offers", "x402.seller.route")
+            and str(error)
+            in (
+                "Price must be '$1.00', '1.00 USDC', or a plain amount with currency",
+                "A currency is required for a plain amount",
+                "Price cannot be represented in the asset's decimal precision",
+                "Instrument payments require USD 0.50-92233720368547758.07",
+            )
         )
-    ) or (
-        type(error) is ValueError
-        and operation == "x402.buyer.sign"
-        and str(error) == "Invalid payment identifier"
+        or (
+            type(error) is ValueError
+            and operation == "mpp.buyer.fulfil"
+            and data["challenge"]["method"] == "card"
+        )
+        or (
+            type(error) is ValueError
+            and operation == "x402.buyer.sign"
+            and str(error) == "Invalid payment identifier"
+        )
     ):
         code = "invalid-input"
     else:
@@ -150,6 +162,7 @@ async def mpp_execute(operation: str, data: Data) -> object:
             pending_timeout=data.get("timeout_ms", 5000) / 1000,
             instrument_id=data["context"].get("instrumentId"),
             subscription_id=data["context"].get("subscriptionId"),
+            merchant=data["context"].get("merchant"),
         ) as buyer:
             payment = asyncio.create_task(buyer.create_credential(challenge))
             return mpp.decode_credential((await payment).to_authorization()[8:])
@@ -165,7 +178,11 @@ async def mpp_execute(operation: str, data: Data) -> object:
     method = wire["challenge"]["method"] if wire else data["method"]
     async with await MppSeller.create(options(data), method=method) as seller:
         if operation == "mpp.seller.prepare":
-            return seller.charge_request(data["request"])
+            if method == "card":
+                return await route_binding(seller, data, prepare_only=True)
+            return (seller.stripe_request if method == "stripe" else seller.charge_request)(
+                data["request"]
+            )
         if operation == "mpp.seller.route-binding":
             return await route_binding(seller, data)
         credential = Credential.from_authorization("Payment " + mpp.encode(wire))
@@ -179,6 +196,7 @@ async def mpp_execute(operation: str, data: Data) -> object:
             return mpp.decode_receipt(receipt.to_payment_receipt())
         value = await seller.validate(credential, request)
         observed = mpp.decode_credential(value.credential.to_authorization()[8:])
+        observed.setdefault("source", "")
         return {
             "success": True,
             "challenge": observed["challenge"],
@@ -191,9 +209,12 @@ async def mpp_execute(operation: str, data: Data) -> object:
         }
 
 
-async def route_binding(seller: MppSeller, data: Data) -> object:
+async def route_binding(seller: MppSeller, data: Data, *, prepare_only: bool = False) -> object:
     app = FastAPI()
-    terms = seller.charge_request(data["request"])
+    prepare = {"stripe": seller.stripe_request, "card": seller.card_request}.get(
+        seller.method, seller.charge_request
+    )
+    terms = prepare(data["request"])
 
     @app.get("/test")
     @pay(
@@ -211,10 +232,18 @@ async def route_binding(seller: MppSeller, data: Data) -> object:
     ) as client:
         initial = await client.get("/test")
         challenge = Challenge.from_www_authenticate(initial.headers["www-authenticate"])
+        if prepare_only:
+            prepared = mpp.decode(challenge.request_b64)
+            if not isinstance(prepared, dict):
+                raise RuntimeError("Expected framework request object")
+            # Framework resource binding is not part of the shared offer projection.
+            return {key: value for key, value in prepared.items() if key != "_mppx_scope"}
         credential = Credential(
-            challenge=challenge.to_echo(), payload=data["credential_payload"], source=data["source"]
+            challenge=challenge.to_echo(),
+            payload=data["credential_payload"],
+            source=data.get("source"),
         )
-        terms = seller.charge_request(data["replacement_request"])
+        terms = prepare(data["replacement_request"])
         response = await client.get(
             "/test", headers={"Authorization": credential.to_authorization()}
         )
@@ -284,6 +313,7 @@ async def x402_execute(operation: str, data: Data) -> object:
     if operation in ("x402.buyer.sign", "x402.buyer.cancel", "x402.buyer.concurrent-await"):
         async with await Buyer.create(
             options(data),
+            instrument_id=data.get("instrument_id"),
             poll_interval=data.get("poll_interval_ms", 1) / 1000,
             pending_timeout=data.get("timeout_ms", 2000) / 1000,
         ) as buyer:
@@ -432,8 +462,37 @@ async def respond(request: Data) -> Data:
             raise RuntimeError("Unsupported adapter version")
         data, operation = request["input"], request["operation"]
         before = deepcopy(data)
+        result: object
+        observation: Data
         try:
-            if operation.startswith("mpp."):
+            if operation.endswith(".buyer.payment-status"):
+
+                async def token() -> str:
+                    return str(data["access_token"])
+
+                config = options(data)
+                if "access_token" in data:
+                    config = ClientOptions(base_url=config.base_url, access_token=token)
+                buyer = (
+                    BuyerMethod(config)
+                    if operation.startswith("mpp.")
+                    else await Buyer.create(config)
+                )
+                async with buyer:
+                    snapshots = []
+                    for _ in range(data.get("reads", 1)):
+                        snapshot = await buyer.get_payment_status(
+                            data["transaction_id"], retries=data.get("retries", 0)
+                        )
+                        snapshots.append(
+                            {
+                                key: snapshot[key]
+                                for key in ("transactionId", "status", "nextAction")
+                                if key in snapshot
+                            }
+                        )
+                    result = snapshots
+            elif operation.startswith("mpp."):
                 result = await mpp_execute(operation, data)
             elif operation.startswith("x402."):
                 result = await x402_execute(operation, data)

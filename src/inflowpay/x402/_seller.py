@@ -156,7 +156,14 @@ def build_offers(
     )
     for method_info in config.payment_methods:
         if include(method_info.scheme, method_info.network):
-            for item in currencies:
+            instrument = method_info.scheme == "instrument"
+            if instrument:
+                if schemes is None or "instrument" not in schemes or selected != "USD":
+                    continue
+                cents = int(_atomic(integer, fraction, 2))
+                if not 50 <= cents <= 9223372036854775807:
+                    raise ValueError("Instrument payments require USD 0.50-92233720368547758.07")
+            for item in ["USD"] if instrument else currencies:
                 result.append(
                     PaymentOption(
                         scheme=method_info.scheme,

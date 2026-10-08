@@ -16,7 +16,9 @@ from inflowpay.x402.seller import Seller
 
 
 @asynccontextmanager
-async def application(options: ClientOptions) -> AsyncIterator[FastAPI]:
+async def application(
+    options: ClientOptions, *, instrument: bool = False
+) -> AsyncIterator[FastAPI]:
     # Each client owns its HTTP connection pool; keep both open while serving.
     async with (
         await Seller.create(options) as seller,
@@ -25,9 +27,12 @@ async def application(options: ClientOptions) -> AsyncIterator[FastAPI]:
         resource = x402ResourceServer(facilitator)
         for registration in await seller.scheme_registrations():
             resource.register(registration["network"], registration["server"])
-        offers = await seller.offers("0.01 USDC", schemes=["balance", "exact"])
+        offers = await seller.offers(
+            "$1.25" if instrument else "0.01 USDC",
+            schemes=["instrument"] if instrument else ["balance", "exact"],
+        )
         if not offers:
-            raise ValueError("The Seller configuration has no USDC payment offers.")
+            raise ValueError("The Seller configuration has no matching payment offers.")
         app = FastAPI()
         app.middleware("http")(
             payment_middleware({"GET /api/widgets": RouteConfig(accepts=offers)}, resource)
@@ -52,9 +57,13 @@ async def run() -> None:
     options = ClientOptions(
         environment="sandbox", api_key=key, base_url=os.environ.get("INFLOW_BASE_URL")
     )
-    async with application(options) as app:
+    scheme = os.environ.get("X402_SCHEME", "default")
+    if scheme not in ("default", "instrument"):
+        raise ValueError("X402_SCHEME must be default or instrument")
+    async with application(options, instrument=scheme == "instrument") as app:
+        price = "1.25 USD via instrument" if scheme == "instrument" else "0.01 USDC"
         print(
-            "x402: http://127.0.0.1:3001/api/widgets costs 0.01 USDC; /free requires no payment.",
+            f"x402: http://127.0.0.1:3001/api/widgets costs {price}; /free requires no payment.",
             flush=True,
         )
         await uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=3001)).serve()
