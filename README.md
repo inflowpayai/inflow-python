@@ -230,6 +230,7 @@ retains the platform's payload, payer source, and additional wire fields.
 | Defaults: `method="inflow", intent="charge"` | Pay an InFlow charge using the rail advertised by the seller. |
 | `instrument_id="..."` | Select the funding instrument for an InFlow instrument-rail charge. |
 | `method="tempo"` | Ask InFlow to produce a Tempo charge credential. No local wallet is required. |
+| `method="card", merchant={...}` | Obtain an encrypted Visa CARD credential using the primary linked instrument, or the supplied `instrument_id`. |
 | `intent="subscription"` | Purchase a subscription through the create-and-approve flow. |
 | `intent="subscription", subscription_id="..."` | Authorize access using that existing subscription and the current seller challenge; do not purchase another subscription. |
 
@@ -239,6 +240,44 @@ to a method. Use separate method instances for different selections; do not chan
 one instance's settings between concurrent requests. Do not register several methods
 with the same method/intent expecting pympp to choose a funding instrument: pympp
 selects the first matching method. Select the intended instance in your application.
+
+### Pay with a linked Visa card
+
+Use `method="card"` for a merchant advertising CARD charge, not for an InFlow
+instrument-rail challenge or a Stripe Shared Payment Token challenge:
+
+```python
+async with BuyerMethod(
+    ClientOptions(environment="sandbox", api_key=os.environ["INFLOW_API_KEY"]),
+    method="card",
+    merchant={
+        "name": "Example Store",
+        "url": "https://store.example",
+        "countryCode": "US",
+    },
+) as method:
+    async with httpx.AsyncClient(transport=payment_transport([method])) as http:
+        response = await http.get("https://store.example/report")
+        response.raise_for_status()
+```
+
+The merchant name must be nonblank and at most 200 characters, the URL must be
+absolute HTTP or HTTPS and at most 2048 characters, and `countryCode` must contain
+two letters. InFlow checks the country, merchant, and card eligibility. The selected
+card must have an enabled, unexpired USD allowance sufficient for the purchase.
+Omit `instrument_id` to use the account's primary instrument; supply a hyphenated
+UUID to select another linked card. The SDK does not create or infer an allowance.
+
+Merchant settings are copied when the method is constructed. Use a separate instance
+for each merchant context, because pympp does not pass Node's per-call context to
+credential creation. That context does not replace the seller's signed challenge.
+
+InFlow issues the encrypted credential; this SDK does not access card numbers or
+decrypt its payload. The buyer rejects a returned CARD credential whose challenge
+differs from the requested one, or whose payload has an invalid structure. Valid
+billing fields and extensions are preserved. A ready credential is not a settlement
+receipt: the seller still needs to accept and process it. An uncertain response is
+not permission to create a second purchase.
 
 ### Waiting, errors, and shutdown
 
@@ -434,9 +473,9 @@ challenges = parse_challenge_headers(
 )
 ```
 
-`validate_request` checks InFlow charge/subscription and Tempo charge request shapes;
-`validate_payload` checks InFlow or Tempo credential payload shapes. Both return a
-deep copy. These checks do not establish supported currencies, account permissions,
+`validate_request` checks InFlow charge/subscription, Tempo charge, and CARD charge
+request shapes; `validate_payload` checks InFlow, Tempo, or CARD credential payload
+shapes. Both return a deep copy. These checks do not establish account permissions,
 signature validity, or settlement. Those require the payment workflow and platform.
 
 `decode_credential` and `decode_receipt` retain the complete decoded JSON object,
@@ -461,6 +500,82 @@ instead of pympp's fixed-field models, which can discard fields.
 
 These are codecs and shape checks, not proof of payment. pympp owns challenge
 authentication and transport; the InFlow platform owns payment verification and settlement.
+
+### Stripe Shared Payment Token acceptance
+
+Create a Seller with `await Seller.create(options, method="stripe")`, using an
+InFlow Seller API key. The Seller must have a verified Stripe business profile
+advertised by `/v1/mpp/config`; setup fails if Stripe charge is unavailable.
+The SDK reads the network profile and allowed payment methods from that response.
+The application does not need a Stripe secret key.
+
+Use `seller.stripe_request({"amount": "1.25"})` to prepare USD 1.25. This method
+accepts dollar strings from `"0.50"` through `"999999.99"` and returns integer
+cents in the challenge. Extra fractional digits are rejected, not rounded.
+Pass its result to the standalone `mpp.server.pay` decorator with `method="stripe"`
+and `intent=seller`. Do not pass dollar prices directly to pympp's high-level
+route helpers. Currency, precision, network profile, and payment-method options
+cannot override the configured USD Stripe offer.
+
+Optional `externalId` identifies the purchase; a credential must repeat it exactly
+when supplied, including an empty string. Optional `metadata` is a dictionary of
+up to 45 string entries, with nonblank keys up to 40 characters and values up to
+500. Brackets and the keys `externalId`, `inflowMppTransactionId`, `mppChallengeId`,
+`mppIntent`, `mppMethod`, and `stripeNetworkProfile` are reserved.
+
+An external Buyer supplies the Shared Payment Token. The InFlow Buyer SDK does
+not create Stripe tokens. The Seller forwards the credential to InFlow for
+validation and then settlement; failed or pending settlement does not release
+the resource. A successful receipt must identify the Stripe method and the
+submitted challenge. [Run the Stripe Seller example](examples/README.md#stripe-seller).
+
+### CARD acceptance
+
+Create a Seller with `await Seller.create(options, method="card")`, using an
+InFlow Seller API key. Configuration supplies the recipient, merchant name, Visa
+network, and RSA public encryption key. Setup fails when that profile is unavailable
+or incomplete; the application cannot override these fields when pricing a route.
+
+Use `seller.card_request({"amount": "1.25"})` to prepare USD 1.25, then pass the result
+to the standalone `pay` decorator with `method="card"` and `intent=seller`. Amounts
+are decimal dollar strings from `"0.50"` through `"999999.99"`, converted exactly to
+integer cents. Optional `billingRequired` is a boolean; an omitted value remains
+omitted. Optional `externalId` allows up to 255 characters, including an empty string.
+
+The SDK checks the encrypted credential's structure without decrypting it, forwards
+it to InFlow for validation and settlement, and requires a successful receipt for
+the same CARD challenge before delivery. pympp checks the signed challenge and route
+terms first. The description-preservation limitation below applies to this seller
+flow, even when a buyer preserves the full challenge.
+
+### Challenge description preservation
+
+pympp 0.11.0 drops the optional, top-level `challenge.description` when converting
+a challenge to a credential echo or parsing and serializing a credential. This
+affects the pympp-backed payment flow, including CARD. A Seller forwarding a
+parsed credential therefore sends it without that description, even when the
+Buyer supplied one. The encoded request, payment amount, and encrypted payload
+are not changed by this omission. A `description` inside the request is a
+different field and is not the field lost here.
+
+Applications that require an exact copy of the complete challenge cannot rely on
+these conversions when `challenge.description` is present. Challenges without
+that optional field avoid this particular limitation. Do not treat a missing
+description as evidence that a payment failed or submit a replacement payment
+because of it.
+
+[Upstream issue #272](https://github.com/tempoxyz/pympp/issues/272) tracks this
+credential-format defect against the MPP draft and mppx. The Seller does
+not replace pympp's credential parser or reconstruct a missing description. InFlow's
+Buyer retains the original challenge fields when producing its outgoing credential;
+that does not prevent a receiving pympp Seller from dropping the description.
+
+Shared conformance executes the description-preservation case and reports its
+failure. CI permits that specific pympp 0.11.0 failure only when a companion check
+confirms that the same operation succeeds with just the outbound description
+omitted and the platform echoing that received credential. Other failures remain
+blocking. An upstream version change or an unexpected pass requires reviewing or
+removing the allowance.
 
 ### Seller route limitations
 
@@ -596,6 +711,42 @@ for a payment payload, and retries the resource request with that payload. An
 InFlow-managed payment can wait for the account owner to approve it. The default
 approval wait is 15 minutes, polling every 5 seconds; configure `pending_timeout`
 and `poll_interval` in seconds on `Buyer.create()`.
+
+### Payment status and recovery
+
+Both `BuyerMethod` (MPP) and `Buyer` (x402) expose
+`await buyer.get_payment_status(transaction_id)`. Pass the original transaction
+identifier after an uncertain payment result. The method returns the server's
+transaction dictionary, including `status` and any `nextAction`, without creating,
+confirming, or cancelling a payment. It does not open the next-action URL.
+
+If `nextAction.type` is `authenticate_card`, your application can direct the buyer
+to its `url` to authenticate in the dashboard. A later call reads the current
+transaction state. Credential or payload availability does not establish that a
+payment settled; neither do `INITIATED`, `PENDING`, or `PROCESSING` statuses.
+
+Each call makes one request by default. Set `retries=1` to retry a transient read
+failure; retries are capped at three. Cancelling the read leaves the payment alone.
+An HTTP error, including a 404, is not permission to create a replacement payment.
+Keep the original transaction identifier when the outcome remains uncertain.
+
+### Linked-card payments
+
+For a linked-card payment, pass `instrument_id="your-card-uuid"` to `Buyer.create()`.
+It is forwarded only for the `instrument` scheme. Omit it to let InFlow select the
+account's primary card. A rejected selection returns the server error; the SDK does
+not try another card or create a replacement purchase. An explicit selection takes
+precedence over `instrumentId` in transaction request extensions.
+For automatic HTTP selection, also include `"instrument"` in `prefer`, for example
+`prefer=("instrument",)`. The default preference remains balance followed by exact;
+setting a card identifier does not change which payment scheme is selected.
+
+Seller instrument offers require `schemes=["instrument"]` and a fiat USD price.
+They are not included by default and do not use stablecoin expansion. Prices must
+represent whole cents from USD 0.50 to 92233720368547758.07; the advertised wire
+scale is retained. No blockchain wallet is required to construct a configured
+instrument offer. MPP instrument receipts must match the method and challenge
+before the protected resource is released.
 
 ### Show an approval before waiting
 

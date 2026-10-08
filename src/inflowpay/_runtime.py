@@ -235,6 +235,16 @@ class Client:
             return _parse(response)
         return _error(path, response, (token,) if token else ())
 
+    async def get_payment_status(
+        self, transaction_id: str, *, retries: int = 0
+    ) -> dict[str, object]:
+        value = await self.request(
+            "GET", f"/v1/transactions/{quote(transaction_id, safe='')}", retries=retries
+        )
+        if not isinstance(value, dict):
+            raise ValueError("Payment status response must be an object")
+        return {str(key): item for key, item in value.items()}
+
     async def cancel_approval(self, approval_id: str) -> None:
         async def cancel() -> None:
             try:

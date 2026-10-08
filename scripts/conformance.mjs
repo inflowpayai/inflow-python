@@ -21,6 +21,50 @@ export function checkContract(path, revision) {
   )
     throw new Error(`Use a clean contract checkout at ${revision}`);
 }
+const descriptionIssue = "https://github.com/tempoxyz/pympp/issues/272";
+const descriptionCase = "mpp.card.verify-reference";
+
+export function acceptsDescriptionFailure(report, diagnostic) {
+  const failures = report.results.filter((item) => item.status !== "passed");
+  return (
+    report.completed === true &&
+    !report.runner_error &&
+    !report.passed &&
+    report.implementation.dependencies.pympp === "0.11.0" &&
+    failures.length === 1 &&
+    failures[0].case_id === descriptionCase &&
+    failures[0].suite === "mpp-seller" &&
+    failures[0].status === "failed" &&
+    failures[0].message === "Unexpected platform request at exchange 2" &&
+    diagnostic?.completed === true &&
+    diagnostic.passed === true &&
+    !diagnostic.runner_error &&
+    diagnostic.results.length === 1 &&
+    diagnostic.results[0].case_id === descriptionCase &&
+    diagnostic.results[0].status === "passed"
+  );
+}
+
+export function descriptionDiagnostic(index) {
+  const item = structuredClone(
+    index.cases.find((item) => item.id === descriptionCase),
+  );
+  if (!item?.input.credential.challenge.description)
+    throw new Error("Description fixture changed; review pympp#272 allowance");
+  // Keep the caller's complete credential; the platform echoes the received credential.
+  for (const exchange of item.platform.exchanges) {
+    if (exchange.request.json?.credential) {
+      exchange.request = structuredClone(exchange.request);
+      delete exchange.request.json.credential.challenge.description;
+    }
+    if (exchange.response?.json?.credential) {
+      exchange.response = structuredClone(exchange.response);
+      delete exchange.response.json.credential.challenge.description;
+      delete exchange.response.json.challenge.description;
+    }
+  }
+  return { ...index, cases: [item] };
+}
 async function main() {
   const { values } = parseArgs({
     options: {
@@ -61,7 +105,15 @@ async function main() {
   process.once("SIGINT", abort);
   process.once("SIGTERM", abort);
   try {
-    for (const suite of ["runtime", "mpp", "x402", "tap"]) {
+    for (const suite of [
+      "runtime",
+      "mpp",
+      "x402",
+      "tap",
+      "payment-status",
+      "stripe",
+      "card",
+    ]) {
       if (controller.signal.aborted) throw new Error("Conformance interrupted");
       const fixtures = await import(
         pathToFileURL(join(contractRoot, `fixtures/${suite}.mjs`))
@@ -72,18 +124,32 @@ async function main() {
         0o600,
       );
       try {
-        const report = await run({
+        const configuration = {
           index:
             suite === "runtime"
               ? runtimeCases(fixtures.runtimeScenarios)
-              : fixtures[`${suite}Cases`],
+              : fixtures[
+                  suite === "payment-status"
+                    ? "paymentStatusCases"
+                    : `${suite}Cases`
+                ],
           capabilities: {
             suites:
               suite === "runtime"
                 ? ["runtime"]
-                : suite === "tap"
-                  ? ["tap-seller"]
-                  : [`${suite}-core`, `${suite}-buyer`, `${suite}-seller`],
+                : suite === "payment-status"
+                  ? ["mpp-buyer", "x402-buyer"]
+                  : suite === "card"
+                    ? ["mpp-seller", "mpp-buyer"]
+                    : suite === "stripe"
+                      ? ["mpp-seller"]
+                      : suite === "tap"
+                        ? ["tap-seller"]
+                        : [
+                            `${suite}-core`,
+                            `${suite}-buyer`,
+                            `${suite}-seller`,
+                          ],
             supported_features: [],
             unsupported_features:
               suite === "mpp"
@@ -101,12 +167,47 @@ async function main() {
           contractRoot,
           sdkRoot: root,
           signal: controller.signal,
-        });
+        };
+        const report = await run(configuration);
         await output.writeFile(JSON.stringify(report, null, 2) + "\n");
         console.log(
           `${suite}: ${report.results.filter((r) => r.status === "passed").length}/${report.results.length} passed`,
         );
-        if (!report.passed) {
+        let accepted = false;
+        if (suite === "card") {
+          const diagnostic = await run({
+            ...configuration,
+            index: descriptionDiagnostic(configuration.index),
+            capabilities: {
+              ...configuration.capabilities,
+              suites: ["mpp-seller"],
+            },
+          });
+          const diagnosticOutput = await open(
+            join(outputDirectory, "card-description-diagnostic.json"),
+            "wx",
+            0o600,
+          );
+          try {
+            await diagnosticOutput.writeFile(
+              JSON.stringify(diagnostic, null, 2) + "\n",
+            );
+          } finally {
+            await diagnosticOutput.close();
+          }
+          accepted = acceptsDescriptionFailure(report, diagnostic);
+          if (accepted)
+            console.warn(
+              `Known failed case ${descriptionCase}: ${descriptionIssue}`,
+            );
+          else {
+            process.exitCode = 1;
+            console.error(
+              `Review or remove the pympp#272 allowance: ${descriptionIssue}`,
+            );
+          }
+        }
+        if (!report.passed && !accepted) {
           process.exitCode = 1;
           console.error(
             report.runner_error ??

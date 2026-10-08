@@ -80,6 +80,24 @@ async def check_buyer():
         transport = payment_transport([buyer])
         await transport.aclose()
 asyncio.run(check_buyer())
+async def check_card_buyer():
+    import json
+    key = dict(kty='RSA', alg='RSA-OAEP-256', use='enc', kid='test', n='test', e='AQAB')
+    wire = dict(id='test', realm='seller.example', method='card', intent='charge',
+        description='Report', request=encode(dict(amount='125', currency='usd', recipient='seller',
+        methodDetails=dict(merchantName='Seller', acceptedNetworks=['visa'], encryptionJwk=key))))
+    payload = dict(encryptedPayload='test-only', network='visa', panLastFour='4242',
+        panExpirationMonth='12', panExpirationYear='2030')
+    merchant = dict(name='Seller', url='https://seller.example', countryCode='US')
+    def respond(request):
+        assert json.loads(request.content) == dict(challenge=wire, options=dict(merchant=merchant))
+        credential = encode(dict(challenge=wire, payload=payload))
+        return httpx.Response(200, json=dict(state='ready', credential=credential))
+    async with BuyerMethod(ClientOptions(transport=httpx.MockTransport(respond)),
+                           method='card', merchant=merchant) as buyer:
+        credential = await buyer.create_credential(to_pympp_challenge(wire))
+        assert decode(credential.to_authorization()[8:]) == dict(challenge=wire, payload=payload)
+asyncio.run(check_card_buyer())
 async def check_seller():
     transport = httpx.MockTransport(lambda request: httpx.Response(200, json={
         'sellerId': '11111111-1111-4111-8111-111111111111',

@@ -70,6 +70,55 @@ runs. This example uses one charge offer. MPP Seller subscriptions and composed
 InFlow offers are not supported by this integration; see the
 [upstream limitations](../README.md#seller-route-limitations).
 
+### Stripe Seller
+
+The same Seller program can offer a Stripe charge for **USD 1.25**. Use a Sandbox
+Seller account with a verified Stripe business profile enabled in its payment
+configuration. Keep the Seller API key and private challenge key configured as above:
+
+```sh
+MPP_METHOD=stripe uv run --locked python -m examples.mpp_seller
+curl -i http://127.0.0.1:3000/api/widgets
+```
+
+The response advertises `stripe/charge` with `"amount":"125"` (integer cents),
+`"currency":"usd"`, and the profile and payment methods supplied by InFlow.
+An external Stripe-capable Buyer must supply a valid Shared Payment Token to pay.
+The InFlow Buyer example does not create these tokens. Without one, you can verify
+the challenge but cannot complete a payment. No Stripe secret key belongs in this
+Seller example; token validation and processing run on InFlow.
+
+### CARD Buyer and Seller
+
+CARD uses an encrypted Visa credential, not a Stripe Shared Payment Token. The
+Seller's authenticated configuration must advertise CARD with its recipient and
+public encryption key. With the Seller key and challenge secret set, run:
+
+```sh
+MPP_METHOD=card uv run --locked python -m examples.mpp_seller
+curl -i http://127.0.0.1:3000/api/widgets
+```
+
+The challenge offers **USD 1.25**, encoded as `"amount":"125"` cents. In a separate
+terminal with the Buyer key, provide the actual merchant's details:
+
+```sh
+export INFLOW_API_KEY='your-sandbox-buyer-key'
+export MPP_METHOD=card
+export CARD_MERCHANT_NAME='Your merchant name'
+export CARD_MERCHANT_URL='https://your-merchant.example'
+export CARD_MERCHANT_COUNTRY='US'
+uv run --locked python -m examples.mpp_buyer
+```
+
+The Buyer account needs a linked, enabled Visa card with an unexpired USD allowance
+covering the purchase. Set `INFLOW_INSTRUMENT_ID` to that card's UUID, or omit it
+to select the primary instrument. The example does not configure allowances or
+handle raw card numbers. Without eligible configuration you can inspect the Seller's
+challenge, but cannot complete a payment. A ready credential still requires Seller
+processing; successful delivery includes a matching CARD receipt. Read the
+[pympp description limitation](../README.md#challenge-description-preservation).
+
 ## x402
 
 Start the [Seller](x402_seller.py) in one terminal:
@@ -108,14 +157,44 @@ settles before releasing the response. The handler only returns content: payment
 middleware does not make database writes or other application side effects atomic
 with settlement. No external wallet or retry-recovery hook is registered here.
 
+### x402 instrument payments
+
+To offer **USD 1.25** through InFlow's instrument scheme, start the Seller with
+`X402_SCHEME=instrument`. It must have that scheme enabled in its configuration:
+
+```sh
+X402_SCHEME=instrument uv run --locked python -m examples.x402_seller
+```
+
+In the Buyer terminal, select the same scheme. Optionally supply a linked
+instrument's UUID; when omitted, InFlow selects the primary instrument:
+
+```sh
+export X402_SCHEME=instrument
+export INFLOW_INSTRUMENT_ID='your-linked-instrument-uuid'
+uv run --locked python -m examples.x402_buyer
+```
+
+`X402_SCHEME=instrument` restricts selection to instrument offers; setting an
+instrument identifier alone does not select that scheme. The default example
+continues to use balance/exact USDC offers. x402 instrument payments are distinct
+from MPP CARD and Stripe Shared Payment Tokens; none of these examples converts
+one credential format into another.
+
 ## Settings and safe testing
 
-| Variable          | Used by    | Meaning                                                     |
-| ----------------- | ---------- | ----------------------------------------------------------- |
-| `INFLOW_API_KEY`  | All        | Sandbox key; Sellers require a Seller account key            |
-| `MPP_SECRET_KEY`  | MPP Seller | Private key for signing challenges                           |
-| `TARGET_URL`      | Buyers     | Defaults to the matching local Seller's `/api/widgets`        |
-| `INFLOW_BASE_URL` | All        | Optional platform override; leave unset to use Sandbox        |
+| Variable                | Used by     | Meaning                                                    |
+| ----------------------- | ----------- | ---------------------------------------------------------- |
+| `INFLOW_API_KEY`         | All         | Sandbox key; Sellers require a Seller account key          |
+| `MPP_SECRET_KEY`         | MPP Seller  | Private key for signing challenges                         |
+| `MPP_METHOD`            | MPP         | `inflow` by default; `card`, or `stripe` for the Seller only |
+| `X402_SCHEME`            | x402        | `default` for balance/exact, or `instrument`                 |
+| `INFLOW_INSTRUMENT_ID`   | Buyers      | Optional linked instrument UUID                            |
+| `CARD_MERCHANT_NAME`     | CARD Buyer  | Merchant name                                              |
+| `CARD_MERCHANT_URL`      | CARD Buyer  | Absolute merchant website URL                              |
+| `CARD_MERCHANT_COUNTRY`  | CARD Buyer  | Two-letter merchant country code                           |
+| `TARGET_URL`            | Buyers      | Defaults to the matching local Seller's `/api/widgets`      |
+| `INFLOW_BASE_URL`        | All         | Optional platform override; leave unset to use Sandbox      |
 
 The programs read exported variables, not `.env` files. Never commit real keys.
 Leave `INFLOW_BASE_URL` unset unless intentionally testing a private deployment:

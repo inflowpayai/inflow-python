@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import math
+import re
 from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -18,7 +19,7 @@ from mpp.runtime import Method
 from .._runtime import Client
 from ..options import ClientOptions
 from ._pympp import from_pympp_challenge
-from ._requests import validate_request
+from ._requests import validate_payload, validate_request
 from ._wire import (
     MppCodecError,
     WireObject,
@@ -44,8 +45,9 @@ class MppMalformedCredentialError(ValueError):
 
 
 class MppPaymentFailedError(Exception):
-    def __init__(self, problem: WireObject | None) -> None:
+    def __init__(self, problem: WireObject | None, transaction_id: str | None = None) -> None:
         self.problem = deepcopy(problem)
+        self.transaction_id = transaction_id
         details = problem or {}
         super().__init__(details.get("detail") or details.get("title") or "MPP payment failed")
 
@@ -80,8 +82,14 @@ class _WireCredential(Credential):
 def _credential(response: WireObject, challenge: WireObject) -> Credential:
     try:
         wire = decode_credential(string(response.get("credential")))
-        # Echo the selected challenge, preserving the platform's payload and payer source.
-        wire["challenge"] = deepcopy(challenge)
+        if challenge["method"] == "card":
+            # CARD binds the issued encrypted credential to the complete requested challenge.
+            if encode(wire["challenge"]) != encode(challenge):
+                raise MppMalformedCredentialError("CARD credential does not match the challenge")
+            validate_payload("card", wire["payload"])
+        else:
+            # InFlow and Tempo echo the selected challenge, as their Node methods do.
+            wire["challenge"] = deepcopy(challenge)
         parsed = Credential.from_authorization("Payment " + encode(wire))
         source = wire.get("source")
         return _WireCredential(
@@ -103,6 +111,26 @@ def _identifier(value: WireObject, key: str) -> str | None:
     return item if isinstance(item, str) and item else None
 
 
+def _card_merchant(value: WireObject | None) -> WireObject:
+    merchant = object_value(value)
+    name, url, country = (string(merchant.get(key)) for key in ("name", "url", "countryCode"))
+    if not name.strip() or len(name.encode("utf-16-le")) // 2 > 200:
+        raise ValueError("CARD merchant name must contain 1 to 200 characters")
+    try:
+        parsed = httpx.URL(url)
+    except httpx.InvalidURL as error:
+        raise ValueError("Invalid CARD merchant url") from error
+    if (
+        len(url.encode("utf-16-le")) // 2 > 2048
+        or parsed.scheme not in ("http", "https")
+        or not parsed.host
+    ):
+        raise ValueError("CARD merchant url must be an absolute HTTP or HTTPS URL")
+    if not re.fullmatch(r"[A-Za-z]{2}", country):
+        raise ValueError("CARD merchant countryCode must contain two letters")
+    return {"name": name, "url": url, "countryCode": country}
+
+
 class BuyerMethod:
     def __init__(
         self,
@@ -112,6 +140,7 @@ class BuyerMethod:
         intent: str = "charge",
         instrument_id: str | None = None,
         subscription_id: str | None = None,
+        merchant: WireObject | None = None,
         poll_interval: float = 5,
         pending_timeout: float = 900,
     ) -> None:
@@ -119,13 +148,28 @@ class BuyerMethod:
             ("inflow", "charge"),
             ("inflow", "subscription"),
             ("tempo", "charge"),
+            ("card", "charge"),
         ):
             raise ValueError("Unsupported MPP Buyer method or intent")
         for value in (instrument_id, subscription_id):
             if value is not None:
                 UUID(value)
-        if instrument_id is not None and (method, intent) != ("inflow", "charge"):
-            raise ValueError("instrument_id applies only to InFlow charge")
+        if instrument_id is not None and (method, intent) not in (
+            ("inflow", "charge"),
+            ("card", "charge"),
+        ):
+            raise ValueError("instrument_id applies only to InFlow or CARD charge")
+        if (
+            method == "card"
+            and instrument_id is not None
+            and not re.fullmatch(
+                r"[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", instrument_id
+            )
+        ):
+            raise ValueError("CARD instrument_id must be a hyphenated UUID")
+        if merchant is not None and method != "card":
+            raise ValueError("merchant applies only to CARD charge")
+        self._merchant = _card_merchant(merchant) if method == "card" else None
         if subscription_id is not None and intent != "subscription":
             raise ValueError("subscription_id applies only to InFlow subscription")
         if any(not math.isfinite(value) or value < 0 for value in (poll_interval, pending_timeout)):
@@ -166,6 +210,13 @@ class BuyerMethod:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
 
+    async def get_payment_status(
+        self, transaction_id: str, *, retries: int = 0
+    ) -> dict[str, object]:
+        if self._closed:
+            raise RuntimeError("MPP Buyer method is closed")
+        return await self._client.get_payment_status(transaction_id, retries=retries)
+
     async def cancel_approval(self, approval_id: str) -> None:
         await self._client.cancel_approval(approval_id)
 
@@ -195,7 +246,11 @@ class BuyerMethod:
             if "problem" in response:
                 raise MppPaymentFailedError(object_value(response["problem"]))
             return _credential(response, challenge)
-        options = {} if self._instrument_id is None else {"instrumentId": self._instrument_id}
+        options: WireObject = (
+            {} if self._instrument_id is None else {"instrumentId": self._instrument_id}
+        )
+        if self._merchant is not None:
+            options["merchant"] = deepcopy(self._merchant)
         response = _response(
             await self._client.request(
                 "POST",
@@ -225,7 +280,8 @@ class BuyerMethod:
                     if state == "failed":
                         problem = response.get("problem")
                         raise MppPaymentFailedError(
-                            None if problem is None else object_value(problem)
+                            None if problem is None else object_value(problem),
+                            _identifier(response, "transactionId"),
                         )
                     if state == "expired":
                         raise MppPaymentExpiredError(_identifier(response, "transactionId"))
