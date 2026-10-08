@@ -949,6 +949,13 @@ response with a payment failure. Avoid irreversible business side effects in a
 handler without your own reconciliation design. InFlow does not roll back the
 handler's work.
 
+The upstream x402 Python 2.25.0 cache helper can mistake `private` inside a quoted
+extension value such as `example="a, private, b"` for a real directive. A receipt
+response can therefore lack the intended private cache policy. This is tracked in
+[upstream issue #3747](https://github.com/x402-foundation/x402/issues/3747).
+Explicitly include an unqualified `private` directive in `Cache-Control` on affected
+handler responses. InFlow does not replace the upstream cache parser.
+
 The clients are framework-independent and do not import FastAPI. Use them with
 other upstream asynchronous adapters where appropriate. For anonymous external
 on-chain facilitation, explicitly use
