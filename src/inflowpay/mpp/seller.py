@@ -185,7 +185,7 @@ class Seller:
             raise MppSellerConfigurationError(
                 "Seller supports inflow, tempo, stripe and card charges"
             )
-        if options.api_key is None:
+        if options.api_key is None and options.api_key_provider is None:
             raise MppSellerConfigurationError("Seller setup requires an InFlow Seller API key")
         client = Client(options)
         try:

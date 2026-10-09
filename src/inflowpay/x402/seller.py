@@ -94,7 +94,7 @@ class Seller:
 
     @classmethod
     async def create(cls, options: ClientOptions) -> Self:
-        if options.api_key is None:
+        if options.api_key is None and options.api_key_provider is None:
             raise ValueError("Seller setup requires an InFlow Seller API key")
         seller = cls(Client(options))
         try:

@@ -198,6 +198,8 @@ async def test_anonymous_rejects_token_provider() -> None:
     with pytest.raises(ValueError):
         await Facilitator.create(ClientOptions(access_token=token), anonymous=True)
     with pytest.raises(ValueError):
+        await Facilitator.create(ClientOptions(api_key_provider=token), anonymous=True)
+    with pytest.raises(ValueError):
         await Seller.create(ClientOptions())
 
 
