@@ -140,8 +140,9 @@ service details. TAP does not enable or modify any payment route automatically.
 
 `ClientOptions` selects `production` (the default, `https://api.inflowpay.ai`) or
 `sandbox` (`https://sandbox.inflowpay.ai`). `base_url` overrides that destination.
-Use `api_key` for API-key authentication or an asynchronous `access_token` callback
-for Bearer authentication, not both. Omit both for anonymous requests. The callback
+Choose one of `api_key`, an asynchronous `api_key_provider`, or an asynchronous
+`access_token` callback. Omit all three for anonymous requests. `api_key_provider`
+returns the API key to send in `X-API-KEY`; its result is not cached. Each callback
 runs for each HTTP attempt, allowing your application to refresh a token; its errors
 propagate without being retried. It must support concurrent calls and cancellation.
 

@@ -125,10 +125,18 @@ class Client:
             raise ValueError(
                 "base URL must be HTTP or HTTPS without credentials, query, or fragment"
             )
+        if (
+            sum(
+                value is not None
+                for value in (options.api_key, options.api_key_provider, options.access_token)
+            )
+            > 1
+        ):
+            raise ValueError("authentication options are mutually exclusive")
+        if options.api_key_provider is not None and not callable(options.api_key_provider):
+            raise ValueError("API key provider must be callable")
         if options.api_key is not None:
             _credential(options.api_key)
-            if options.access_token is not None:
-                raise ValueError("API key and access token provider are mutually exclusive")
         _positive(options.timeout)
         self.base_url = base.rstrip("/")
         self._options = options
@@ -192,6 +200,10 @@ class Client:
     ) -> object:
         await asyncio.sleep(0)
         token = self._options.api_key
+        if self._options.api_key_provider is not None:
+            token = await self._options.api_key_provider()
+            _credential(token)
+            await asyncio.sleep(0)
         # Provider failures are application errors, not retryable transport failures.
         if self._options.access_token is not None:
             token = await self._options.access_token()
@@ -204,7 +216,7 @@ class Client:
         if content is not None:
             headers["Content-Type"] = "application/json"
         if token is not None:
-            if self._options.api_key is not None:
+            if self._options.api_key is not None or self._options.api_key_provider is not None:
                 headers["X-API-KEY"] = token
             else:
                 headers["Authorization"] = f"Bearer {token}"

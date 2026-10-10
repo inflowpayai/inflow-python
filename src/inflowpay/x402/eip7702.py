@@ -216,7 +216,11 @@ class SponsorshipExtension:
         consent: Callable[[Authorization], Awaitable[bool]],
     ) -> None:
         # This public endpoint is independent of the managed Buyer's account credentials.
-        if options.api_key is not None or options.access_token is not None:
+        if (
+            options.api_key is not None
+            or options.api_key_provider is not None
+            or options.access_token is not None
+        ):
             raise ValueError("EIP-7702 sponsorship uses anonymous ClientOptions")
         self._owner = _address(signer.address)
         self._signer = signer

@@ -65,9 +65,13 @@ class Facilitator:
     @classmethod
     async def create(cls, options: ClientOptions, *, anonymous: bool = False) -> Self:
         if anonymous:
-            if options.api_key is not None or options.access_token is not None:
+            if (
+                options.api_key is not None
+                or options.api_key_provider is not None
+                or options.access_token is not None
+            ):
                 raise ValueError("Anonymous facilitator must not receive credentials")
-        elif options.api_key is None:
+        elif options.api_key is None and options.api_key_provider is None:
             raise ValueError("Facilitator setup requires a Seller API key or anonymous=True")
         client = Client(options)
         try:

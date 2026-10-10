@@ -269,3 +269,9 @@ def test_sponsorship_rejects_platform_credentials() -> None:
 
     with pytest.raises(ValueError, match="anonymous"):
         SponsorshipExtension(ClientOptions(api_key="test-key"), signer, consent)
+
+    async def provider() -> str:
+        return "test-key"
+
+    with pytest.raises(ValueError, match="anonymous"):
+        SponsorshipExtension(ClientOptions(api_key_provider=provider), signer, consent)
