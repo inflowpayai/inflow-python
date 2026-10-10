@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "inflowpay"
-version = "0.3.0"
+version = "0.3.1"
 description = "InFlow Python SDK for MPP and x402 payments"
 readme = "README.md"
 requires-python = ">=3.11"
