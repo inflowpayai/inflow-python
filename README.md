@@ -793,11 +793,62 @@ policies and approvals still apply.
 ### External wallets
 
 Install `inflowpay[evm]` or `inflowpay[svm]` and register an upstream signing scheme
-with `buyer.register(network, scheme)` to allow external-wallet payments. The
+with `buyer.register(network, scheme)` to also pay with a wallet your application
+controls. Your application supplies a signer: the wallet's address and functions
+that produce signatures, using a local private key or a wallet provider.
+Registration attaches the scheme to this Buyer in your application; it does not
+register a wallet with InFlow, deposit funds, or send the private key to InFlow.
+Applications using only InFlow-managed payments do not need this setup. The
 Buyer first selects a supported InFlow payment; otherwise it delegates to the
 registered upstream schemes. `prefer` controls the managed scheme order and
 defaults to `("balance", "exact")`. Managed signing does not accept Permit2
-requirements; those use an external wallet.
+requirements; those use an external wallet. Registering an external signer does
+not force its use. A failed InFlow payment does not automatically retry with an
+external wallet.
+
+#### External-wallet spending controls
+
+The upstream Python client accepts only tokens recognized by the registered
+scheme's built-in token list by default, and caps each payment in those tokens at
+$1. Recognition uses the network and token contract, not just its name. These are
+buyer-client controls, not limits on merchant prices. Your application can keep,
+configure, or disable them; they do not cap InFlow-managed signing or `prepare()`.
+
+This example explicitly configures Arc mainnet USDC without a spending cap.
+First register your EVM signing scheme with `buyer.register("eip155:5042", scheme)`:
+
+```python
+buyer.set_spend_controls(
+    {
+        "max_amount_per_payment": False,
+        "allowed_assets": [
+            {
+                "network": "eip155:5042",
+                "asset": "0x3600000000000000000000000000000000000000",
+            }
+        ],
+    }
+)
+```
+
+Here, `buyer` is the Buyer created above and `scheme` is your application's upstream
+EVM signing scheme. The configuration disables the default dollar cap while
+retaining the token restriction: built-in recognized tokens and the listed Arc
+contract are accepted. To cap the Arc entry instead, add
+`"max_amount_per_payment": "25000000"` inside that entry. USDC has six decimal
+places, so this is a $25 cap. Per-token caps use integer atomic amounts and are
+optional.
+
+To disable both the token restriction and all upstream spending caps:
+
+```python
+buyer.set_spend_controls(False)
+```
+
+These calls replace the spending-control configuration. They do not register a
+signer or add support for a payment scheme.
+
+#### External-wallet network calls
 
 InFlow-managed payment requests use asynchronous network calls. External-wallet
 payments run through the upstream Python x402 signing implementation. Its Solana
