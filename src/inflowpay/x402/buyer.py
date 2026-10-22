@@ -23,6 +23,7 @@ from x402.schemas import (
     PaymentRequired,
     PaymentRequiredV1,
     PaymentRequirements,
+    PaymentRequirementsV1,
     RecoveredPayloadResult,
     ResourceInfo,
     SupportedResponse,
@@ -51,6 +52,15 @@ def _atomic(value: str) -> int | None:
     return int(matched[1] + matched[2] + fraction)
 
 
+def _is_circle_gateway(requirement: PaymentRequirements | PaymentRequirementsV1) -> bool:
+    return (requirement.extra or {}).get("name") == "GatewayWalletBatched"
+
+
+def _reject_circle_gateway(requirement: PaymentRequirements | PaymentRequirementsV1) -> None:
+    if _is_circle_gateway(requirement):
+        raise NoMatchingRequirementsError("Circle Gateway payments are not supported by InFlow.")
+
+
 class Buyer(x402Client):
     def __init__(
         self,
@@ -63,6 +73,10 @@ class Buyer(x402Client):
         instrument_id: str | None = None,
     ) -> None:
         super().__init__()
+        # Check the upstream selection after application policies, before wallet signing.
+        self.on_before_payment_creation(
+            lambda context: _reject_circle_gateway(context.selected_requirements)
+        )
         self._client = client
         self._supported = supported.model_copy(deep=True)
         self._expires = asyncio.get_running_loop().time() + 3600
@@ -155,11 +169,15 @@ class Buyer(x402Client):
         self._refresh = None
 
     def supports(self, requirement: PaymentRequirements) -> bool:
-        return requirement.extra.get("assetTransferMethod") != "permit2" and any(
-            kind.x402_version == 2
-            and kind.scheme == requirement.scheme
-            and kind.network == requirement.network
-            for kind in self._supported.kinds
+        return (
+            not _is_circle_gateway(requirement)
+            and requirement.extra.get("assetTransferMethod") != "permit2"
+            and any(
+                kind.x402_version == 2
+                and kind.scheme == requirement.scheme
+                and kind.network == requirement.network
+                for kind in self._supported.kinds
+            )
         )
 
     async def select_inflow_requirement(
@@ -277,6 +295,10 @@ class Buyer(x402Client):
         transaction_request_extensions: Mapping[str, object] | None = None,
     ) -> PreparedPayment:
         self._check_open()
+        if _is_circle_gateway(requirement):
+            raise X402PaymentError(
+                "unsupported-capability", "Circle Gateway payments are not supported by InFlow."
+            )
         if not self.supports(requirement):
             raise X402PaymentError(
                 "unsupported-capability", "InFlow cannot sign this payment requirement"
@@ -357,6 +379,9 @@ class Buyer(x402Client):
         if not isinstance(payment_required, PaymentRequired) or payment_required.x402_version != 2:
             raise ValueError("InFlow Buyer requires x402 version 2")
         required = payment_required.model_copy(deep=True)
+        required.accepts = [r for r in required.accepts if not _is_circle_gateway(r)]
+        if payment_required.accepts and not required.accepts:
+            _reject_circle_gateway(payment_required.accepts[0])
         if resource is not None:
             required.resource = resource.model_copy(deep=True)
         if extensions is not None:
