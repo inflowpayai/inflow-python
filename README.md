@@ -806,6 +806,13 @@ requirements; those use an external wallet. Registering an external signer does
 not force its use. A failed InFlow payment does not automatically retry with an
 external wallet.
 
+The Buyer excludes Circle Gateway offers (`extra.name: "GatewayWalletBatched"`)
+from both InFlow-managed payments and external-wallet payments. If a seller offers
+only Circle Gateway, payment selection raises `NoMatchingRequirementsError` from
+`x402.schemas`. Direct `prepare()` calls raise `X402PaymentError` with code
+`unsupported-capability`. Both explain that Circle Gateway payments are not
+supported by InFlow. Other payment options from the same seller remain eligible.
+
 #### External-wallet spending controls
 
 The upstream Python client accepts only tokens recognized by the registered

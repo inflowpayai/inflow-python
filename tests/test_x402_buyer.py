@@ -94,6 +94,159 @@ async def buyer(platform: Platform) -> Buyer:
     )
 
 
+def gateway_requirement(timeout: int = 604900) -> PaymentRequirements:
+    return PaymentRequirements(
+        scheme="exact",
+        network="eip155:8453",
+        asset="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        amount="100000",
+        pay_to="0x" + "22" * 20,
+        max_timeout_seconds=timeout,
+        extra={"name": "GatewayWalletBatched", "version": "1"},
+    )
+
+
+@pytest.mark.parametrize("timeout", [300, 3600, 604900])
+async def test_gateway_rejected_before_managed_payment(timeout: int) -> None:
+    gateway = gateway_requirement(timeout)
+    platform = Platform()
+    platform.supported = {
+        "kinds": [{"scheme": "exact", "network": gateway.network, "x402Version": 2}]
+    }
+    async with await buyer(platform) as client:
+        assert not client.supports(gateway)
+        assert await client.select_inflow_requirement(required(gateway)) is None
+        with pytest.raises(X402PaymentError) as caught:
+            await client.prepare(gateway, RESOURCE)
+        assert caught.value.code == "unsupported-capability"
+        assert str(caught.value) == "Circle Gateway payments are not supported by InFlow."
+    assert len(platform.requests) == 1
+
+
+@pytest.mark.parametrize("external", [False, True])
+async def test_gateway_only_rejected_without_mutating_response(external: bool) -> None:
+    from eth_account import Account
+    from x402.mechanisms.evm.exact import ExactEvmScheme
+
+    gateway = gateway_requirement()
+    response = required(gateway, gateway.model_copy(update={"amount": "200000"}))
+    before = response.model_copy(deep=True)
+    platform = Platform()
+    async with await buyer(platform) as client:
+        if external:
+            client.register(gateway.network, ExactEvmScheme(Account.from_key("0x" + "11" * 32)))
+        with pytest.raises(NoMatchingRequirementsError) as caught:
+            await client.create_payment_payload(response)
+        assert str(caught.value) == "Circle Gateway payments are not supported by InFlow."
+    assert response == before
+    assert len(platform.requests) == 1
+
+
+async def test_gateway_mixed_managed_payment_over_http() -> None:
+    case = deepcopy(CASES[0])
+    data = case["input"]
+    ordinary = PaymentRequirements.model_validate(data["requirement"])
+    response = required(gateway_requirement(), ordinary)
+    response.extensions = {"payment-identifier": {"info": {"required": False}}}
+    before = response.model_copy(deep=True)
+    exchanges = cast(list[Exchange], case["platform"]["exchanges"])
+    # Automatic routing lets InFlow supply the identifier instead of sending one.
+    body = cast(dict[str, object], exchanges[1]["request"]["json"])
+    del body["remotePaymentId"]
+    async with (
+        server(exchanges) as base,
+        await Buyer.create(
+            ClientOptions(api_key=data["api_key"], base_url=base), poll_interval=0
+        ) as client,
+    ):
+        payload = await client.create_payment_payload(response)
+        assert isinstance(payload, PaymentPayload)
+        assert payload.accepted == ordinary
+    assert response == before
+
+
+@pytest.mark.parametrize("inject_gateway", [False, True])
+async def test_gateway_filtered_before_external_wallet_policy(inject_gateway: bool) -> None:
+    from eth_account import Account
+    from x402.mechanisms.evm.exact import ExactEvmScheme
+    from x402.schemas import PaymentRequirementsV1
+
+    gateway = gateway_requirement()
+    ordinary = gateway.model_copy(
+        update={"extra": {"name": "USD Coin", "version": "2"}, "max_timeout_seconds": 60}
+    )
+    response = required(gateway, ordinary)
+    before = response.model_copy(deep=True)
+    seen: list[PaymentRequirements | PaymentRequirementsV1] = []
+
+    def policy(
+        version: int, offers: list[PaymentRequirements | PaymentRequirementsV1]
+    ) -> list[PaymentRequirements | PaymentRequirementsV1]:
+        assert version == 2
+        seen.extend(offers)
+        return [gateway] if inject_gateway else offers
+
+    platform = Platform()
+    async with await buyer(platform) as client:
+        client.register(gateway.network, ExactEvmScheme(Account.from_key("0x" + "11" * 32)))
+        client.register_policy(policy)
+        if inject_gateway:
+            with pytest.raises(NoMatchingRequirementsError) as caught:
+                await client.create_payment_payload(response)
+            assert str(caught.value) == "Circle Gateway payments are not supported by InFlow."
+        else:
+            payload = await client.create_payment_payload(response)
+            assert isinstance(payload, PaymentPayload)
+            assert payload.accepted == ordinary
+            assert payload.payload["signature"].startswith("0x")
+    assert seen == [ordinary]
+    assert response == before
+    assert len(platform.requests) == 1
+
+
+async def test_policy_cannot_reintroduce_gateway_for_managed_payment() -> None:
+    platform = Platform()
+    async with await buyer(platform) as client:
+        client.register_policy(
+            lambda _version, _offers: [
+                REQUIREMENT.model_copy(update={"extra": {"name": "GatewayWalletBatched"}})
+            ]
+        )
+        with pytest.raises(NoMatchingRequirementsError, match="no supported InFlow requirement"):
+            await client.create_payment_payload(required())
+    assert len(platform.requests) == 1
+
+
+@pytest.mark.parametrize("with_gateway", [False, True])
+async def test_other_unsupported_offers_keep_upstream_error(with_gateway: bool) -> None:
+    offers = [gateway_requirement()] if with_gateway else []
+    if with_gateway:
+        offers.append(REQUIREMENT.model_copy(update={"network": "unsupported:1"}))
+    platform = Platform()
+    async with await buyer(platform) as client:
+        with pytest.raises(NoMatchingRequirementsError):
+            await client.create_payment_payload(PaymentRequired(accepts=offers, resource=RESOURCE))
+    assert len(platform.requests) == 1
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {},
+        {"name": "USD Coin"},
+        {"name": "gatewaywalletbatched"},
+        {"assetName": "GatewayWalletBatched"},
+        {"name": {"value": "GatewayWalletBatched"}},
+    ],
+)
+async def test_gateway_detection_uses_exact_name(extra: dict[str, object]) -> None:
+    platform = Platform()
+    async with await buyer(platform) as client:
+        ordinary = REQUIREMENT.model_copy(update={"extra": extra})
+        assert client.supports(ordinary)
+        assert await client.select_inflow_requirement(required(ordinary)) == ordinary
+
+
 @pytest.mark.parametrize("case", CASES, ids=[case["id"] for case in CASES])
 async def test_shared_buyer(case: dict[str, Any]) -> None:
     data = case["input"]
