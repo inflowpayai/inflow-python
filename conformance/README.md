@@ -65,6 +65,13 @@ by the payment suites rather than a separate raw approval client.
 
 ## Test setup and limits
 
+Upfront fixtures verify offer metadata, Buyer forwarding, settlement responses,
+and identical requests during pending retries. Native tests additionally exercise
+the actual upstream FastAPI middleware with the InFlow facilitator adapter: held
+settlement, failure paths, receipts, matching, repeated requests and concurrency.
+Platform responses in those native tests are synthetic; they do not establish
+blockchain settlement or server-side payment deduplication.
+
 Environment checks capture requests in a transport without sending them to public
 hosts. Payment requests go only to the runner's `127.0.0.1` server. Use synthetic
 credentials; these checks do not make live payments or prove server authorization.

@@ -908,7 +908,7 @@ export INFLOW_API_KEY='your-seller-api-key'
 
 `Seller` reads your configured wallets, assets, and payment methods and converts
 prices into upstream x402 route options. `Facilitator` sends verification and
-settlement requests to InFlow. The upstream FastAPI middleware challenges the
+settlement requests to InFlow. By default, the upstream FastAPI middleware challenges the
 buyer, verifies the payment before calling your handler, and settles after a
 successful handler response.
 
@@ -990,6 +990,49 @@ Install `inflowpay[evm]` for EIP-2612 declarations. Balance offers are unaffecte
 by `permit2=True`; filter to `exact` for an on-chain-only route. InFlow-managed
 buyers cannot sign Permit2 payments; these offers require external wallets.
 
+### Authorization or upfront payment
+
+Both `seller.offers()` and `seller.route()` accept `payment_flow="upfront"`.
+Omitting it, or choosing `payment_flow="authorization"`, retains authorization:
+verify payment, run the handler, settle a successful response, then release it.
+Choose authorization when a failed handler should not incur a payment. Settlement
+can still fail after your handler has done work; buffering a response does not
+undo database writes or other application effects.
+
+Choose upfront for fixed-price work that must be paid before it starts, such as an
+expensive computation:
+
+```python
+route = await seller.route("0.01 USDC", payment_flow="upfront")
+```
+
+The offer advertises `extra.paymentFlow: "upfront"`. The upstream middleware waits
+for successful settlement before calling your handler. Rejection, exhausted pending
+retries, and uncertain settlement prevent handler execution. Upfront does not call
+a separate verification endpoint first: InFlow settlement validates the payment.
+Buyers preserve the advertised flow through selection and signing; no Buyer option
+is needed.
+
+Upfront supports fixed-price `exact` on EVM with EIP-3009 or Permit2, fixed-price
+`exact` on Solana, and `balance` or `instrument` on `inflow:1`. Seller configuration
+must advertise the capability. Instrument still requires explicit scheme selection.
+Metered `upto`, unknown transfer methods, and other networks are not enabled for
+upfront. Unsupported combinations raise an error, including when mixed with
+otherwise valid offers; the SDK does not silently change the selected flow.
+
+After successful upfront settlement, a handler error does not refund payment.
+The FastAPI middleware preserves the receipt on an error response; an exception
+from the handler becomes HTTP 500 with that receipt. It does not settle a second
+time for that execution. Repeated paid requests can still run the handler again:
+payment deduplication is not fulfillment deduplication. Make fulfillment idempotent
+and retain the payment identifier and application result. Do not automatically
+purchase another payment after a timeout or handler failure.
+
+For a route accepting MPP and x402, route each credential to its matching payment
+handler as alternatives; do not stack payment middleware that requires both.
+`payment_flow` affects only x402. The [runnable seller](examples/README.md#x402)
+demonstrates both flows.
+
 ### Settlement and framework behavior
 
 The facilitator preserves a valid buyer payment identifier or derives one from
@@ -1000,7 +1043,7 @@ is returned as an invalid verification result. Settlement retries only an HTTP
 between attempts. Other HTTP or transport failures are not retried automatically:
 the payment may already have completed. Cancelling the task stops pending waits.
 
-The upstream FastAPI middleware buffers the handler's successful response before
+In authorization mode, the upstream FastAPI middleware buffers the handler's successful response before
 settlement; it does not stream the response to the buyer during settlement. A
 rejected verification prevents the handler from running. A handler error prevents
 after-handler settlement; a settlement failure replaces the successful handler

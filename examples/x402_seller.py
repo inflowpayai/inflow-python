@@ -3,6 +3,7 @@ import os
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Literal
 
 import uvicorn
 from fastapi import FastAPI
@@ -17,7 +18,10 @@ from inflowpay.x402.seller import Seller
 
 @asynccontextmanager
 async def application(
-    options: ClientOptions, *, instrument: bool = False
+    options: ClientOptions,
+    *,
+    instrument: bool = False,
+    payment_flow: Literal["authorization", "upfront"] = "authorization",
 ) -> AsyncIterator[FastAPI]:
     # Each client owns its HTTP connection pool; keep both open while serving.
     async with (
@@ -30,6 +34,7 @@ async def application(
         offers = await seller.offers(
             "$1.25" if instrument else "0.01 USDC",
             schemes=["instrument"] if instrument else ["balance", "exact"],
+            payment_flow=payment_flow,
         )
         if not offers:
             raise ValueError("The Seller configuration has no matching payment offers.")
@@ -40,7 +45,8 @@ async def application(
 
         @app.get("/api/widgets")
         async def widgets() -> dict[str, list[int]]:
-            # Settlement follows this response; only return content, not irreversible side effects.
+            # Authorization settles after this response; upfront settles before this handler.
+            # Neither flow rolls back application effects or automatically refunds failures.
             return {"widgets": [1, 2, 3]}
 
         @app.get("/free")
@@ -60,7 +66,14 @@ async def run() -> None:
     scheme = os.environ.get("X402_SCHEME", "default")
     if scheme not in ("default", "instrument"):
         raise ValueError("X402_SCHEME must be default or instrument")
-    async with application(options, instrument=scheme == "instrument") as app:
+    payment_flow = os.environ.get("X402_PAYMENT_FLOW", "authorization")
+    if payment_flow not in ("authorization", "upfront"):
+        raise ValueError("X402_PAYMENT_FLOW must be authorization or upfront")
+    async with application(
+        options,
+        instrument=scheme == "instrument",
+        payment_flow="upfront" if payment_flow == "upfront" else "authorization",
+    ) as app:
         price = "1.25 USD via instrument" if scheme == "instrument" else "0.01 USDC"
         print(
             f"x402: http://127.0.0.1:3001/api/widgets costs {price}; /free requires no payment.",
