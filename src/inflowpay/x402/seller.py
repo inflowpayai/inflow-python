@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
 from types import TracebackType
-from typing import Generic, Self, TypedDict, TypeVar, cast
+from typing import Generic, Literal, Self, TypedDict, TypeVar, cast
 
 from pydantic import BaseModel
 from x402.http.types import PaymentOption, RouteConfig
@@ -14,7 +14,14 @@ from x402.schemas import AssetAmount, PaymentRequirements, Price, SupportedKind,
 from .._runtime import Client
 from ..options import ClientOptions
 from ._core import INFLOW_EIP7702_GAS_SPONSORING, declare_sponsorship
-from ._seller import PERMIT2_PROXY, SellerConfig, build_offers, supports_permit2, upto_kind
+from ._seller import (
+    PERMIT2_PROXY,
+    SellerConfig,
+    build_offers,
+    supports_permit2,
+    supports_upfront,
+    upto_kind,
+)
 
 __all__ = ["SchemeRegistration", "Seller", "SellerConfig"]
 
@@ -63,11 +70,16 @@ class SchemeRegistration(TypedDict):
 
 
 class _Passthrough:
-    def __init__(self, scheme: str, methods: list[str]) -> None:
+    def __init__(self, scheme: str, network: str, methods: list[str]) -> None:
         self.scheme = scheme
         self.default_asset_transfer_method = methods[0]
         self.payment_flows: Mapping[str, PaymentFlowConfig] = {
-            method: {"supported": ("authorization",), "default": "authorization"}
+            method: {
+                "supported": ("authorization", "upfront")
+                if supports_upfront(scheme, network, method)
+                else ("authorization",),
+                "default": "authorization",
+            }
             for method in methods
         }
 
@@ -148,6 +160,7 @@ class Seller:
         schemes: Sequence[str] | None = None,
         networks: Sequence[str] | None = None,
         max_timeout_seconds: int = 300,
+        payment_flow: Literal["authorization", "upfront"] = "authorization",
     ) -> list[PaymentOption]:
         return build_offers(
             await self.config(),
@@ -156,6 +169,7 @@ class Seller:
             schemes=schemes,
             networks=networks,
             max_timeout_seconds=max_timeout_seconds,
+            payment_flow=payment_flow,
         )
 
     async def route(
@@ -167,6 +181,7 @@ class Seller:
         networks: Sequence[str] | None = None,
         max_timeout_seconds: int = 300,
         permit2: bool = False,
+        payment_flow: Literal["authorization", "upfront"] = "authorization",
     ) -> RouteConfig:
         offers = build_offers(
             await self.config(),
@@ -176,6 +191,7 @@ class Seller:
             networks=networks,
             max_timeout_seconds=max_timeout_seconds,
             permit2=permit2,
+            payment_flow=payment_flow,
         )
         route = RouteConfig(accepts=offers)
         candidates = [
@@ -255,6 +271,6 @@ class Seller:
                 # type; the object implements SchemeNetworkServer at runtime.
                 server = cast(Callable[[], SchemeNetworkServer], UptoEvmServerScheme)()
             else:
-                server = _Passthrough(scheme, methods)
+                server = _Passthrough(scheme, network, methods)
             result.append({"network": network, "server": server})
         return result

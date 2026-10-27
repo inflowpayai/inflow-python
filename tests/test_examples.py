@@ -3,7 +3,7 @@ import json
 import runpy
 from collections.abc import Iterator
 from copy import deepcopy
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 import httpx._client
@@ -36,6 +36,7 @@ def example_environment(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
         "INFLOW_BASE_URL",
         "MPP_METHOD",
         "X402_SCHEME",
+        "X402_PAYMENT_FLOW",
         "INFLOW_INSTRUMENT_ID",
         "CARD_MERCHANT_NAME",
         "CARD_MERCHANT_URL",
@@ -69,16 +70,25 @@ def test_main_success_and_interrupt(
 
 
 @pytest.mark.parametrize(
-    "protocol,outcome",
+    "protocol,outcome,payment_flow",
     [
-        (protocol, outcome)
+        (protocol, outcome, "authorization")
         for protocol in ("mpp", "x402", "card", "instrument")
         for outcome in ("paid", "free", "rejected", "missing", "malformed")
     ]
-    + [("x402", "settle-failed"), ("x402", "legacy-receipt")],
+    + [("x402", "settle-failed", "authorization"), ("x402", "legacy-receipt", "authorization")]
+    + [
+        (protocol, outcome, "upfront")
+        for protocol in ("x402", "instrument")
+        for outcome in ("paid", "http-error")
+    ],
 )
 async def test_example_pair(
-    protocol: str, outcome: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    protocol: str,
+    outcome: str,
+    payment_flow: Literal["authorization", "upfront"],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     mode = protocol
     protocol = "mpp" if mode == "card" else "x402" if mode == "instrument" else protocol
@@ -172,6 +182,8 @@ async def test_example_pair(
                     response.headers[header] = "not-a-receipt"
                 if outcome == "legacy-receipt":
                     response.headers["x-payment-response"] = response.headers.pop(header)
+                if outcome == "http-error":
+                    response.status_code = 500
                 if outcome == "settle-failed" and protocol == "x402":
                     response.headers[header] = base64.b64encode(
                         json.dumps(
@@ -207,11 +219,13 @@ async def test_example_pair(
             options, "test-secret", method="card" if mode == "card" else "inflow"
         )
         if protocol == "mpp"
-        else x402_seller.application(options, instrument=mode == "instrument")
+        else x402_seller.application(
+            options, instrument=mode == "instrument", payment_flow=payment_flow
+        )
     )
     async with application as app, httpx.ASGITransport(app) as app_transport:
         buyer = mpp_buyer if protocol == "mpp" else x402_buyer
-        fails = outcome in ("rejected", "malformed") or (
+        fails = outcome in ("rejected", "malformed", "http-error") or (
             outcome == "settle-failed" and protocol == "x402"
         )
         if fails:
@@ -220,6 +234,11 @@ async def test_example_pair(
         else:
             await buyer.run()
     assert len(created) == (0 if outcome == "free" else 1)
+    if payment_flow == "upfront":
+        assert created[0]["accept"]["extra"]["paymentFlow"] == "upfront"
+        assert [request.url.path for request in platform.requests if request.method == "POST"] == [
+            "/v1/x402/settle"
+        ]
     if created and mode == "card":
         assert created[0]["options"] == {"merchant": MERCHANT}
     if created and mode == "instrument":
@@ -240,9 +259,11 @@ async def test_example_pair(
 
 
 @pytest.mark.parametrize("module,port", [(mpp_seller, 3000), (x402_seller, 3001)])
+@pytest.mark.parametrize("payment_flow", ["authorization", "upfront"])
 async def test_seller_run_serves_actual_app(
-    module: Any, port: int, monkeypatch: pytest.MonkeyPatch
+    module: Any, port: int, payment_flow: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setenv("X402_PAYMENT_FLOW", payment_flow)
     monkeypatch.setenv("INFLOW_API_KEY", "secret")
     monkeypatch.setenv("MPP_SECRET_KEY", "test-secret")
     platform = MppPlatform() if module is mpp_seller else X402Platform()
@@ -258,7 +279,14 @@ async def test_seller_run_serves_actual_app(
             transport=httpx.ASGITransport(server.config.app), base_url="http://localhost"
         ) as http:
             assert (await http.get("/free")).json() == {"ok": True}
-            assert (await http.get("/api/widgets")).status_code == 402
+            response = await http.get("/api/widgets")
+            assert response.status_code == 402
+            if module is x402_seller:
+                requirements = json.loads(base64.b64decode(response.headers["payment-required"]))
+                assert (
+                    requirements["accepts"][0].get("extra", {}).get("paymentFlow", "authorization")
+                    == payment_flow
+                )
 
     monkeypatch.setattr(uvicorn.Server, "serve", serve)
     await module.run()
@@ -277,6 +305,13 @@ async def test_x402_seller_rejects_empty_offers(monkeypatch: pytest.MonkeyPatch)
         async with x402_seller.application(ClientOptions(api_key="secret")):
             pytest.fail("empty offers must not start a server")
     assert platform.closed
+
+
+async def test_x402_seller_rejects_invalid_flow(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("INFLOW_API_KEY", "secret")
+    monkeypatch.setenv("X402_PAYMENT_FLOW", "escrow")
+    with pytest.raises(ValueError, match="X402_PAYMENT_FLOW"):
+        await x402_seller.run()
 
 
 async def test_mpp_seller_requires_challenge_secret(monkeypatch: pytest.MonkeyPatch) -> None:

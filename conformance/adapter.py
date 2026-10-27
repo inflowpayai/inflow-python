@@ -286,6 +286,8 @@ async def x402_execute(operation: str, data: Data) -> object:
             }
             if "maxTimeoutSeconds" in arguments:
                 kwargs["max_timeout_seconds"] = arguments["maxTimeoutSeconds"]
+            if "paymentFlow" in arguments:
+                kwargs["payment_flow"] = arguments["paymentFlow"]
 
             def offer(value: Any) -> Data:
                 return {

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from copy import deepcopy
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field
 from x402.http.types import PaymentOption
@@ -101,7 +101,10 @@ def build_offers(
     networks: Sequence[str] | None = None,
     max_timeout_seconds: int = 300,
     permit2: bool = False,
+    payment_flow: Literal["authorization", "upfront"] = "authorization",
 ) -> list[PaymentOption]:
+    if payment_flow not in ("authorization", "upfront"):
+        raise ValueError("payment_flow must be authorization or upfront")
     integer, fraction, selected = _price(price, currency)
 
     def include(scheme: str, network: str) -> bool:
@@ -176,4 +179,19 @@ def build_offers(
                         extra={**deepcopy(method_info.extra), "assetName": item},
                     )
                 )
+    if payment_flow == "upfront":
+        for offer in result:
+            extra = offer.extra or {}
+            if not supports_upfront(offer.scheme, offer.network, extra.get("assetTransferMethod")):
+                raise ValueError(f"Upfront is not supported for {offer.scheme} on {offer.network}")
+            offer.extra = {**extra, "paymentFlow": "upfront"}
     return result
+
+
+def supports_upfront(scheme: str, network: str, method: object) -> bool:
+    transfer = "default" if method is None else method
+    if scheme == "exact":
+        if network.startswith("eip155:"):
+            return transfer in ("default", "eip3009", "permit2")
+        return network.startswith("solana:") and transfer in ("default", "solana")
+    return network == "inflow:1" and scheme in ("balance", "instrument") and transfer == "default"

@@ -152,10 +152,24 @@ Success prints HTTP 200, `{"widgets":[1,2,3]}`, and the success, network, and
 transaction fields decoded from `PAYMENT-RESPONSE`.
 
 The Buyer selects a supported offer, obtains its payment payload through InFlow,
-and sends one paid request. The Seller verifies it, runs the widgets handler, and
+and sends one paid request. By default, the Seller verifies it, runs the widgets handler, and
 settles before releasing the response. The handler only returns content: payment
 middleware does not make database writes or other application side effects atomic
 with settlement. No external wallet or retry-recovery hook is registered here.
+
+To settle before the handler runs, start the Seller with:
+
+```sh
+X402_PAYMENT_FLOW=upfront uv run --locked python -m examples.x402_seller
+```
+
+`X402_PAYMENT_FLOW=authorization` selects the default. Other values fail startup.
+Upfront blocks the handler until settlement succeeds. Use it for fixed-price work
+that must be paid before it starts. If the handler fails after payment, its error
+response retains the receipt, but payment is not automatically refunded. The Buyer
+does not purchase another payment because the handler failed. Make application
+fulfillment safe to repeat: retrying a paid request can run the handler again even
+when the payment itself is deduplicated.
 
 ### x402 instrument payments
 
