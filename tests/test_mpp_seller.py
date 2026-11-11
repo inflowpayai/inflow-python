@@ -28,7 +28,7 @@ CONFIG: WireObject = {
         }
     ],
 }
-RECEIPT = {
+RECEIPT: WireObject = {
     "method": "inflow",
     "status": "success",
     "reference": "payment",

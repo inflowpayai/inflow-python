@@ -3,11 +3,14 @@ import secrets
 from copy import deepcopy
 from typing import TypedDict, cast
 
+from x402.schemas import SettleResponse
+
 X402_VERSION = 2
 NETWORK_INFLOW = "inflow:1"
 INFLOW_AMOUNT_SCALE = 18
 PAYMENT_IDENTIFIER = "payment-identifier"
 INFLOW_EIP7702_GAS_SPONSORING = "inflowEip7702GasSponsoring"
+INFLOW_TRANSACTION = "inflow-transaction"
 _ID_PATTERN = "^[a-zA-Z0-9_-]+$"
 
 
@@ -55,6 +58,21 @@ def declare_payment_identifier() -> IdentifierDeclaration:
 def _object(value: object) -> dict[str, object]:
     # Extension input is decoded JSON; nested values remain untrusted objects.
     return cast(dict[str, object], value) if isinstance(value, dict) else {}
+
+
+def get_inflow_transaction_id(result: SettleResponse) -> str | None:
+    """Read the seller's Transaction UUID without substituting the settlement reference."""
+    if not result.success:
+        return None
+    extension = _object((result.extensions or {}).get(INFLOW_TRANSACTION))
+    value = _object(extension.get("info")).get("transactionId")
+    if (
+        isinstance(value, str)
+        and len(value) == 36
+        and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", value, re.I)
+    ):
+        return value
+    return None
 
 
 def read_payment_identifier(value: object) -> IdentifierDeclaration | None:

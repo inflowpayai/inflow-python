@@ -15,6 +15,7 @@ from mpp.server import Validation  # type: ignore[attr-defined]
 
 from .._runtime import Client
 from ..options import ClientOptions
+from ._pympp import get_inflow_transaction_id
 from ._requests import validate_payload, validate_request
 from ._wire import (
     MppCodecError,
@@ -408,6 +409,8 @@ class Seller:
             if "receipt" not in response:
                 raise MppCredentialProblemError(response.get("problem"))
             wire = decode_receipt(encode(response["receipt"]))
+            if get_inflow_transaction_id(wire) is None:
+                wire.pop("inflowTransactionId", None)
             # Card settlement must identify the purchase before releasing its resource.
             if (
                 credential.challenge.method in ("stripe", "card")

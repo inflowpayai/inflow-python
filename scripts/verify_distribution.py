@@ -70,6 +70,10 @@ for name in ("mpp", "x402", "mcp", "web3", "solana", "fastapi", "rfc8785"):
 MPP_CONSUMER = """
 from importlib import util
 from inflowpay.mpp import encode, decode, to_pympp_challenge, from_pympp_challenge
+from inflowpay.mpp import get_inflow_transaction_id
+transaction_id = '22222222-2222-4222-8222-222222222222'
+receipt = dict(status='success', inflowTransactionId=transaction_id)
+assert get_inflow_transaction_id(receipt) == transaction_id
 from inflowpay.mpp.buyer import BuyerMethod, payment_transport
 from inflowpay.mpp.seller import Seller
 from inflowpay import ClientOptions
@@ -121,10 +125,14 @@ X402_CONSUMER = """
 from importlib import util
 from inflowpay.x402 import (
     PaymentRequirements, declare_payment_identifier, generate_payment_id,
-    payment_identifier_entry,
+    payment_identifier_entry, get_inflow_transaction_id, SettleResponse, INFLOW_TRANSACTION,
 )
 from x402.schemas import PaymentRequirements as UpstreamRequirements
 assert PaymentRequirements is UpstreamRequirements
+transaction_id = '22222222-2222-4222-8222-222222222222'
+settlement = SettleResponse(success=True, transaction='reference', network='inflow:1',
+    extensions={INFLOW_TRANSACTION: {'info': {'transactionId': transaction_id}}})
+assert get_inflow_transaction_id(settlement) == transaction_id
 entry = payment_identifier_entry(declare_payment_identifier(), generate_payment_id())
 assert entry is not None and entry['info']['required'] is False
 from inflowpay.x402.buyer import Buyer
