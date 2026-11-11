@@ -14,6 +14,7 @@ from x402.schemas import (
 from ._core import (
     INFLOW_AMOUNT_SCALE,
     INFLOW_EIP7702_GAS_SPONSORING,
+    INFLOW_TRANSACTION,
     NETWORK_INFLOW,
     PAYMENT_IDENTIFIER,
     X402_VERSION,
@@ -21,6 +22,7 @@ from ._core import (
     declare_payment_identifier,
     declare_sponsorship,
     generate_payment_id,
+    get_inflow_transaction_id,
     normalize_decimal_string,
     payment_identifier_entry,
     read_payment_identifier,
@@ -30,6 +32,7 @@ from ._core import (
 __all__ = [
     "INFLOW_AMOUNT_SCALE",
     "INFLOW_EIP7702_GAS_SPONSORING",
+    "INFLOW_TRANSACTION",
     "NETWORK_INFLOW",
     "PAYMENT_IDENTIFIER",
     "X402_VERSION",
@@ -45,6 +48,7 @@ __all__ = [
     "declare_payment_identifier",
     "declare_sponsorship",
     "generate_payment_id",
+    "get_inflow_transaction_id",
     "normalize_decimal_string",
     "payment_identifier_entry",
     "read_payment_identifier",

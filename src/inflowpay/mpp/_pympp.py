@@ -1,7 +1,8 @@
+import re
 from copy import deepcopy
 from dataclasses import dataclass, field, fields, replace
 
-from mpp import Challenge, ChallengeEcho
+from mpp import Challenge, ChallengeEcho, Receipt
 
 from ._wire import (
     MppCodecError,
@@ -12,6 +13,25 @@ from ._wire import (
     string,
     validate_challenge,
 )
+
+
+def get_inflow_transaction_id(receipt: Receipt | WireObject) -> str | None:
+    """Read the seller's Transaction UUID from a receipt or its decoded wire object."""
+    wire = (
+        object_value(decode(receipt.to_payment_receipt()))
+        if isinstance(receipt, Receipt)
+        else receipt
+    )
+    if wire.get("status") != "success":
+        return None
+    value = wire.get("inflowTransactionId")
+    if (
+        isinstance(value, str)
+        and len(value) == 36
+        and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", value, re.I)
+    ):
+        return value
+    return None
 
 
 @dataclass(frozen=True)
