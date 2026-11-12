@@ -6,13 +6,13 @@ from contextlib import asynccontextmanager
 from typing import Literal
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from x402 import x402ResourceServer
-from x402.http.middleware.fastapi import payment_middleware
 from x402.http.types import RouteConfig
 
 from inflowpay import ClientOptions
 from inflowpay.x402.facilitator import Facilitator
+from inflowpay.x402.fastapi import payment_middleware
 from inflowpay.x402.seller import Seller
 
 
@@ -31,17 +31,26 @@ async def application(
         resource = x402ResourceServer(facilitator)
         for registration in await seller.scheme_registrations():
             resource.register(registration["network"], registration["server"])
-        offers = await seller.offers(
-            "$1.25" if instrument else "0.01 USDC",
-            schemes=["instrument"] if instrument else ["balance", "exact"],
-            payment_flow=payment_flow,
-        )
-        if not offers:
+        schemes = ["instrument"] if instrument else ["balance", "exact"]
+        if not await seller.offers(
+            "$1.25" if instrument else "0.01 USDC", schemes=schemes, payment_flow=payment_flow
+        ):
             raise ValueError("The Seller configuration has no matching payment offers.")
+
+        async def route(request: Request) -> RouteConfig:
+            large = request.query_params.get("bundle") == "large"
+            if instrument:
+                price = "$2.50" if large else "$1.25"
+            else:
+                price = "0.05 USDC" if large else "0.01 USDC"
+            return await seller.route(
+                price,
+                schemes=schemes,
+                payment_flow=payment_flow,
+            )
+
         app = FastAPI()
-        app.middleware("http")(
-            payment_middleware({"GET /api/widgets": RouteConfig(accepts=offers)}, resource)
-        )
+        app.middleware("http")(payment_middleware({"GET /api/widgets": route}, resource))
 
         @app.get("/api/widgets")
         async def widgets() -> dict[str, list[int]]:
@@ -74,9 +83,10 @@ async def run() -> None:
         instrument=scheme == "instrument",
         payment_flow="upfront" if payment_flow == "upfront" else "authorization",
     ) as app:
-        price = "1.25 USD via instrument" if scheme == "instrument" else "0.01 USDC"
+        description = "1.25 USD via instrument" if scheme == "instrument" else "0.01 USDC"
         print(
-            f"x402: http://127.0.0.1:3001/api/widgets costs {price}; /free requires no payment.",
+            f"x402: http://127.0.0.1:3001/api/widgets starts at {description}; "
+            "?bundle=large selects the larger bundle; /free requires no payment.",
             flush=True,
         )
         await uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=3001)).serve()

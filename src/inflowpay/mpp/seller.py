@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import inspect
 import re
+from collections.abc import Awaitable, Callable
 from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from types import TracebackType
@@ -9,8 +11,8 @@ from uuid import uuid4
 
 from mpp import Credential, Receipt
 from mpp.errors import InvalidChallengeError, PaymentError
-from mpp.server import ServerMethod, Validation
-from mpp.server.method import ValidateContext, VerifyContext
+from mpp.server import Request, ServerMethod, Validation
+from mpp.server.method import RequestContext, ValidateContext, VerifyContext
 from pydantic import BaseModel
 
 from .._runtime import Client
@@ -233,6 +235,35 @@ class Seller(ServerMethod):
 
     async def aclose(self) -> None:
         await self._client.aclose()
+
+    def priced(
+        self,
+        request: Callable[[Request], WireObject | Awaitable[WireObject]],
+        *,
+        needs_request_body: bool = False,
+    ) -> ServerMethod:
+        """Resolve charge input per request; Stripe and CARD amounts are decimal USD."""
+
+        async def resolve(context: RequestContext) -> dict[str, object]:
+            if context.input is None:
+                raise MppSellerConfigurationError("Request-time pricing requires an HTTP request")
+            value = request(context.input)
+            terms = await value if inspect.isawaitable(value) else value
+            if self.name == "stripe":
+                prepared = self.stripe_request(terms)
+            elif self.name == "card":
+                prepared = self.card_request(terms)
+            else:
+                prepared = self.charge_request(terms)
+            return dict(prepared)
+
+        return ServerMethod(
+            method=self.method,
+            validate=self._validate,
+            broadcast=self._broadcast,
+            resolve_request=resolve,
+            needs_request_body=needs_request_body,
+        )
 
     def charge_request(self, request: WireObject) -> WireObject:
         if self.name in ("stripe", "card"):
