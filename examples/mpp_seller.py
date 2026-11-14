@@ -4,14 +4,17 @@ import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import httpx
 import uvicorn
 from fastapi import FastAPI, Request
 from mpp import Credential, Receipt
 from mpp.server import Mpp
+from mpp.server import Request as PaymentRequest
 from mpp.server.decorator import pay
 from starlette.responses import JSONResponse
 
 from inflowpay import ClientOptions
+from inflowpay.mpp import WireObject
 from inflowpay.mpp.seller import Seller
 
 
@@ -21,17 +24,17 @@ async def application(
 ) -> AsyncIterator[FastAPI]:
     # Keep the Seller open for the whole server lifetime, not just startup.
     async with await Seller.create(options, method=method) as seller:
-        # Stripe and CARD prices are dollars here; their challenges contain integer cents.
-        if method == "card":
-            terms = seller.card_request({"amount": "1.25"})
-        elif method == "stripe":
-            terms = seller.stripe_request({"amount": "1.25"})
-        else:
-            terms = seller.charge_request({"amount": "0.01", "currency": "USDC"})
+
+        def price(request: PaymentRequest) -> WireObject:
+            large = httpx.URL(request.url).params.get("bundle") == "large"
+            if method in ("stripe", "card"):
+                return {"amount": "2.50" if large else "1.25"}
+            return {"amount": "0.05" if large else "0.01", "currency": "USDC"}
+
         app = FastAPI()
 
         @app.get("/api/widgets")
-        @pay(Mpp(methods=[seller], realm="localhost", secret_key=secret).charge(**terms))
+        @pay(Mpp(methods=[seller.priced(price)], realm="localhost", secret_key=secret).charge())
         async def widgets(
             request: Request, credential: Credential, receipt: Receipt
         ) -> JSONResponse:
@@ -62,7 +65,8 @@ async def run() -> None:
     async with application(options, secret, method=method) as app:
         price = "0.01 USDC" if method == "inflow" else f"1.25 USD via {method}"
         print(
-            f"MPP: http://127.0.0.1:3000/api/widgets costs {price}; /free requires no payment.",
+            f"MPP: http://127.0.0.1:3000/api/widgets starts at {price}; "
+            "?bundle=large selects the larger bundle; /free requires no payment.",
             flush=True,
         )
         await uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=3000)).serve()

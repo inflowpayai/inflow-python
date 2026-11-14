@@ -43,6 +43,12 @@ export MPP_SECRET_KEY="$(uv run python -c 'import secrets; print(secrets.token_h
 uv run --locked python -m examples.mpp_seller
 ```
 
+The Seller's request callback selects its own price on every call: **0.01 USDC**
+for `/api/widgets` and **0.05 USDC** for `/api/widgets?bundle=large`. Fixed prices
+can use `charge_request`, `stripe_request`, or `card_request`. For Stripe and CARD, the
+callback selects **USD 1.25** or **USD 2.50**; the helpers convert dollars to cents
+and attach the configured payment details.
+
 The server listens at `http://127.0.0.1:3000`. Check both routes without paying:
 
 ```sh
@@ -137,7 +143,11 @@ curl -i http://127.0.0.1:3001/api/widgets
 ```
 
 `/free` returns HTTP 200. `/api/widgets` returns HTTP 402 with a `PAYMENT-REQUIRED`
-header describing the available offers.
+header describing the available offers. Add `?bundle=large` to request **0.05 USDC**
+instead. The Seller selects the price from its own price list on each request.
+The async route callback calls `seller.route(...)` with the selected price and
+currency. `inflowpay.x402.fastapi.payment_middleware` resolves that callback and
+delegates payment handling to the upstream middleware.
 
 Run the [Buyer](x402_buyer.py) in a second terminal:
 

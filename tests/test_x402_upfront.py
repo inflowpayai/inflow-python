@@ -12,12 +12,14 @@ from fastapi import FastAPI, Request
 from starlette.responses import JSONResponse
 from x402 import x402ResourceServer
 from x402.http.middleware.fastapi import payment_middleware
+from x402.http.types import RouteConfig
 from x402.schemas import PaymentPayload, PaymentRequirements
 
 from inflowpay.mpp.seller import Seller as MppSeller
 from inflowpay.x402 import declare_payment_identifier
 from inflowpay.x402._seller import SellerConfig, build_offers
 from inflowpay.x402.facilitator import Facilitator
+from inflowpay.x402.fastapi import payment_middleware as request_payment_middleware
 from inflowpay.x402.seller import Seller
 from test_mpp_seller import Platform as MppPlatform
 from test_mpp_seller import app_for, credential_for, options
@@ -145,6 +147,7 @@ async def merchant(
     scheme: str = "balance",
     handler_status: int = 200,
     throws: bool = False,
+    request_pricing: bool = False,
 ) -> AsyncIterator[tuple[httpx.AsyncClient, PaymentPayload]]:
     # Only platform HTTP is simulated. Registration, matching, settlement ordering,
     # receipts and the application dispatch use the actual upstream middleware.
@@ -157,7 +160,14 @@ async def merchant(
             resource.register(registration["network"], registration["server"])
         route = await seller.route("$1", schemes=[scheme], payment_flow=flow)
         app = FastAPI()
-        app.middleware("http")(payment_middleware({"GET /paid": route}, resource))
+        if request_pricing:
+
+            async def resolve(request: Request) -> RouteConfig:
+                return await seller.route("$1", schemes=[scheme], payment_flow=flow)
+
+            app.middleware("http")(request_payment_middleware({"GET /paid": resolve}, resource))
+        else:
+            app.middleware("http")(payment_middleware({"GET /paid": route}, resource))
 
         @app.get("/paid")
         async def paid(request: Request) -> JSONResponse:
@@ -207,11 +217,19 @@ def payment_headers(payment: PaymentPayload) -> dict[str, str]:
         ("empty", 1, 200, False, False),
     ],
 )
+@pytest.mark.parametrize("request_pricing", [False, True])
 async def test_upfront_lifecycle(
-    outcome: str, attempts: int, handler_status: int, throws: bool, runs: bool
+    outcome: str,
+    attempts: int,
+    handler_status: int,
+    throws: bool,
+    runs: bool,
+    request_pricing: bool,
 ) -> None:
     platform = FlowPlatform(outcome)
-    async with merchant(platform, handler_status=handler_status, throws=throws) as (http, payment):
+    async with merchant(
+        platform, handler_status=handler_status, throws=throws, request_pricing=request_pricing
+    ) as (http, payment):
         response = await http.get("/paid", headers=payment_headers(payment))
     assert platform.events == ["settle"] * attempts + (["handler"] if runs else [])
     assert all(value == platform.settlements[0] for value in platform.settlements)

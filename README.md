@@ -580,6 +580,38 @@ These entry points authenticate the credential before reaching the Seller hooks.
 Validation is non-mutating; broadcast may still fail after successful validation.
 Never invoke the protected application handler based on validation alone.
 
+### Request-time MPP pricing
+
+Use `seller.priced(callback)` as the method registered with `Mpp`. The callback
+receives pympp's `Request` and returns charge input, synchronously or asynchronously:
+
+```python
+import httpx
+from mpp.server import Mpp, Request
+from inflowpay.mpp import WireObject
+
+
+async def price(request: Request) -> WireObject:
+    large = httpx.URL(request.url).params.get("bundle") == "large"
+    return {"amount": "0.05" if large else "0.01", "currency": "USDC"}
+
+
+payments = Mpp(methods=[seller.priced(price)], realm="seller.example", secret_key=secret)
+# Use @pay(payments.charge()) on the protected endpoint.
+```
+
+The callback runs for each request, including paid retries. Return consistent
+terms for the same purchase; changed terms invalidate a previously quoted payment.
+InFlow and Tempo inputs use the same units as `charge_request`; Stripe and CARD
+use decimal USD amounts, converted to cents by their existing helpers.
+
+Request bodies are not read for pricing unless `needs_request_body=True` is passed
+to `priced`. Then `request.body` contains the bytes and the framework handler can
+still read them. Apply request-size limits in your application. Body access alone
+does not bind a challenge to the body; use pympp's `body` route option when needed.
+Callback errors prevent payment processing and propagate through pympp. Keep the
+Seller open for the lifetime of the application.
+
 ## Migrating from InFlow Python 0.3
 
 This dependency upgrade requires an InFlow minor-version release. Integrations
@@ -906,6 +938,39 @@ async def serve() -> None:
 
 asyncio.run(serve())
 ```
+
+For request-time pricing in FastAPI or Starlette, import `payment_middleware` from
+`inflowpay.x402.fastapi`. Route entries may be fixed `RouteConfig` objects or sync/async
+callbacks returning a complete `RouteConfig`:
+
+```python
+from fastapi import Request
+from x402.http.types import RouteConfig
+from inflowpay.x402.fastapi import payment_middleware
+
+
+async def report_route(request: Request) -> RouteConfig:
+    price = "0.05 USDC" if request.query_params.get("bundle") == "large" else "0.01 USDC"
+    return await seller.route(price)
+
+
+app.middleware("http")(payment_middleware({"GET /report": report_route}, resource_server))
+```
+
+Each matching request resolves its route once, including paid retries. The callback
+can select currency, payment methods, and sponsorship through `seller.route`;
+verification, settlement, receipts, and server hooks remain upstream behavior.
+Use upstream route patterns such as `GET /reports/:id`; this also preserves Bazaar
+route metadata. Unmatched requests pass through without invoking the callback.
+
+The callback receives the framework's request. It does not read the body unless
+your callback explicitly uses `await request.body()` or `await request.json()`;
+these cached reads preserve the body for the application handler. Apply request-size
+limits in your application and do not consume `request.stream()` in the callback.
+Failed or empty route resolution raises before payment or application handlers run;
+the application controls error handling and logging. Cancellation propagates.
+Fixed-price middleware can continue
+using the upstream import directly.
 
 Both clients own their HTTP connections and close them when their context exits.
 `Seller.create()` requires an API key and preloads configuration and capabilities.
