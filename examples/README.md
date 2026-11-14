@@ -66,9 +66,8 @@ method and reference decoded from the Seller's `Payment-Receipt`.
 
 The Buyer obtains a payment credential through InFlow and retries the resource
 once. The Seller verifies and broadcasts the payment before its widgets handler
-runs. This example uses one charge offer. MPP Seller subscriptions and composed
-InFlow offers are not supported by this integration; see the
-[upstream limitations](../README.md#seller-route-limitations).
+runs. This example uses one charge offer. The InFlow Seller implements charge
+payments; it does not implement subscription Seller routes.
 
 ### Stripe Seller
 

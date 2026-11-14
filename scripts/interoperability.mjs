@@ -56,7 +56,7 @@ const report = {
     ),
   ),
   exclusions: [
-    "Python MPP Seller subscriptions: pympp#269; Python Buyer subscriptions are exercised against Node Sellers.",
+    "Python MPP Seller implements charge only; Python Buyer subscriptions are exercised against Node Sellers.",
   ],
   cases: [],
   passed: false,

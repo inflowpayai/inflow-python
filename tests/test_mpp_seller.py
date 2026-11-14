@@ -7,12 +7,14 @@ import httpx
 import pytest
 from fastapi import FastAPI, Request
 from mpp import Challenge, Credential, Receipt
+from mpp.server import Mpp
 from mpp.server.decorator import pay
 from starlette.responses import JSONResponse
 
 from inflowpay import ClientOptions, InflowApiError
 from inflowpay.mpp import WireObject, decode
 from inflowpay.mpp.seller import MppCredentialProblemError, MppSellerConfigurationError, Seller
+from mpp_support import broadcast, validate
 
 ID = "11111111-1111-4111-8111-111111111111"
 TERMS: WireObject = {"amount": "0.50", "currency": "USDC"}
@@ -93,23 +95,21 @@ def app_for(seller: Seller, *, requires_auth: bool = False) -> FastAPI:
 
     @app.get("/paid")
     @pay(
-        intent=seller,
-        request=seller.charge_request(TERMS),
-        method=seller.method,
-        realm="seller.example",
-        secret_key="local-test-secret",
-        requires_auth=requires_auth,
+        Mpp(
+            methods=[seller],
+            realm="seller.example",
+            secret_key="local-test-secret",
+            requires_auth=requires_auth,
+        ).charge(**seller.charge_request(TERMS))
     )
     async def paid(request: Request, credential: Credential, receipt: Receipt) -> JSONResponse:
         return JSONResponse({"ok": True}, headers={"Payment-Receipt": receipt.to_payment_receipt()})
 
     @app.get("/other")
     @pay(
-        intent=seller,
-        request=seller.charge_request({**TERMS, "amount": "2"}),
-        method=seller.method,
-        realm="seller.example",
-        secret_key="local-test-secret",
+        Mpp(methods=[seller], realm="seller.example", secret_key="local-test-secret").charge(
+            **seller.charge_request({**TERMS, "amount": "2"})
+        )
     )
     async def other(request: Request, credential: Credential, receipt: Receipt) -> JSONResponse:
         return JSONResponse({"ok": True})
@@ -383,7 +383,7 @@ async def test_validation_response_binding(field: str) -> None:
     }
     async with await Seller.create(options(platform)) as seller:
         with pytest.raises(MppCredentialProblemError):
-            await seller.validate(credential, TERMS)
+            await validate(seller, credential, TERMS)
         assert len(platform.requests) == 2
 
 
@@ -403,7 +403,7 @@ async def test_normalized_validation_request_and_omitted_details() -> None:
     }
     async with await Seller.create(options(platform)) as seller:
         terms = deepcopy(TERMS)
-        result = await seller.validate(credential, terms)
+        result = await validate(seller, credential, terms)
         assert result.details == {}
         assert result.request == TERMS
         result.request["amount"] = "changed"
@@ -426,13 +426,13 @@ async def test_broadcast_retry_and_concurrent_keys(enabled: bool) -> None:
     platform.config = {**CONFIG, "featureFlags": {"idempotencyKeyEnabled": enabled}}
     async with await Seller.create(options(platform)) as seller:
         credential = wire_credential()
-        await seller.broadcast(credential, TERMS)
+        await broadcast(seller, credential, TERMS)
         first = platform.requests[1:]
         assert len(first) == 2
         assert first[0].content == first[1].content
         assert first[0].headers.get("idempotency-key") == first[1].headers.get("idempotency-key")
         await asyncio.gather(
-            seller.broadcast(credential, TERMS), seller.broadcast(credential, TERMS)
+            broadcast(seller, credential, TERMS), broadcast(seller, credential, TERMS)
         )
         keys = [r.headers.get("idempotency-key") for r in platform.requests[2:]]
         assert len(set(keys)) == (3 if enabled else 1)
@@ -468,14 +468,14 @@ async def test_cancellation_closes_or_reuses(path: str) -> None:
         assert platform.closed
     else:
         async with await Seller.create(options(platform)) as seller:
-            operation = seller.validate if path == "validate" else seller.broadcast
-            pending = asyncio.create_task(operation(wire_credential(), TERMS))
+            operation = validate if path == "validate" else broadcast
+            pending = asyncio.create_task(operation(seller, wire_credential(), TERMS))
             await asyncio.wait_for(entered.wait(), 2)
             pending.cancel()
             with pytest.raises(asyncio.CancelledError):
                 await pending
             platform.waiting = False
-            await operation(wire_credential(), TERMS)
+            await operation(seller, wire_credential(), TERMS)
     assert cancelled.is_set()
 
 
@@ -510,7 +510,7 @@ async def test_closed_seller_and_http_failure() -> None:
     seller = await Seller.create(options(platform))
     await seller.aclose()
     with pytest.raises(RuntimeError, match="closed"):
-        await seller.validate(wire_credential(), TERMS)
+        await validate(seller, wire_credential(), TERMS)
 
     async def missing(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("config"):
@@ -521,5 +521,5 @@ async def test_closed_seller_and_http_failure() -> None:
         replace(options(Platform()), transport=httpx.MockTransport(missing))
     ) as other:
         with pytest.raises(InflowApiError) as error:
-            await other.validate(wire_credential(), TERMS)
+            await validate(other, wire_credential(), TERMS)
         assert error.value.http_status == 404

@@ -208,7 +208,7 @@ def test_pympp_boundary() -> None:
         **CHALLENGE,
         "request": request,
         "description": "Pay",
-        "digest": "hash",
+        "digest": "sha-256=" + base64.b64encode(bytes(32)).decode(),
         "expires": "2099-01-01T00:00:00Z",
         "opaque": "eyJrIjoidiJ9",
         "header": "X-Payment",

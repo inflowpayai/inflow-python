@@ -13,6 +13,7 @@ from inflowpay.mpp import get_inflow_transaction_id as mpp_transaction_id
 from inflowpay.mpp.seller import Seller
 from inflowpay.x402 import INFLOW_TRANSACTION, SettleResponse
 from inflowpay.x402 import get_inflow_transaction_id as x402_transaction_id
+from mpp_support import broadcast
 from test_mpp_seller import (
     RECEIPT,
     TERMS,
@@ -57,7 +58,7 @@ async def test_mpp_optional_transaction_id(value: JsonValue) -> None:
     platform = Platform()
     platform.result = {"receipt": wire}
     async with await Seller.create(options(platform)) as seller:
-        receipt = await seller.broadcast(wire_credential(), TERMS)
+        receipt = await broadcast(seller, wire_credential(), TERMS)
         assert mpp_transaction_id(receipt) == expected
         header = receipt.to_payment_receipt()
         decoded = decode_receipt(header)

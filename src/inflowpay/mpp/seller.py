@@ -2,19 +2,20 @@ from __future__ import annotations
 
 import re
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from types import TracebackType
 from typing import Self, cast
 from uuid import uuid4
 
 from mpp import Credential, Receipt
 from mpp.errors import InvalidChallengeError, PaymentError
-
-# pympp exposes Validation here but omits an explicit typed re-export in 0.11.0.
-from mpp.server import Validation  # type: ignore[attr-defined]
+from mpp.server import ServerMethod, Validation
+from mpp.server.method import ValidateContext, VerifyContext
+from pydantic import BaseModel
 
 from .._runtime import Client
 from ..options import ClientOptions
+from ._method import method_definition
 from ._pympp import get_inflow_transaction_id
 from ._requests import validate_payload, validate_request
 from ._wire import (
@@ -88,10 +89,20 @@ class _Receipt(Receipt):
 
 
 def _wire_credential(credential: Credential) -> WireObject:
+    credential = _plain_credential(credential)
     wire = decode_credential(credential.to_authorization()[8:])
     # The platform requires a string; anonymous credentials have no payer DID.
     wire.setdefault("source", "")
     return wire
+
+
+def _plain_credential(credential: Credential) -> Credential:
+    # Native server methods receive model payloads; the platform consumes their JSON form.
+    if isinstance(credential.payload, BaseModel):
+        return replace(
+            credential, payload=credential.payload.model_dump(mode="json", by_alias=True)
+        )
+    return credential
 
 
 def _stripe_profile(config: WireObject) -> WireObject:
@@ -172,13 +183,18 @@ def _dollar_cents(amount: object, method: str) -> str:
     return str(cents)
 
 
-class Seller:
-    name = "charge"
-
+class Seller(ServerMethod):
     def __init__(self, client: Client, config: WireObject, method: str) -> None:
-        self._client = client
-        self._config = deepcopy(config)
-        self.method = method
+        super().__init__(
+            method=method_definition(method, "charge"),
+            validate=self._validate,
+            broadcast=self._broadcast,
+        )
+        object.__setattr__(self, "_client", client)
+        object.__setattr__(self, "_config", deepcopy(config))
+
+    _client: Client
+    _config: WireObject
 
     @classmethod
     async def create(cls, options: ClientOptions, *, method: str = "inflow") -> Self:
@@ -219,16 +235,13 @@ class Seller:
         await self._client.aclose()
 
     def charge_request(self, request: WireObject) -> WireObject:
-        if self.method in ("stripe", "card"):
-            raise MppSellerConfigurationError(
-                f"Use {self.method}_request with a decimal USD amount"
-            )
+        if self.name in ("stripe", "card"):
+            raise MppSellerConfigurationError(f"Use {self.name}_request with a decimal USD amount")
         result = deepcopy(request)
-        # Use standalone pympp.pay: its high-level routes convert all prices to token units.
         if "decimals" in result:
             raise MppSellerConfigurationError("Supply wire amounts without a decimals field")
         details = object_value(result.get("methodDetails", {}))
-        if self.method == "inflow":
+        if self.name == "inflow":
             result["recipient"] = self._config["sellerId"]
             result["methodDetails"] = self._rail(string(result.get("currency")), details)
         else:
@@ -239,10 +252,10 @@ class Seller:
                 "supportedModes": ["pull"],
                 **details,
             }
-        return validate_request(self.method, "charge", result)
+        return validate_request(self.name, "charge", result)
 
     def stripe_request(self, request: WireObject) -> WireObject:
-        if self.method != "stripe":
+        if self.name != "stripe":
             raise MppSellerConfigurationError("stripe_request requires a Stripe Seller")
         cents = _dollar_cents(request.get("amount"), "Stripe")
         details = _stripe_profile(self._config)
@@ -284,7 +297,7 @@ class Seller:
         return result
 
     def card_request(self, request: WireObject) -> WireObject:
-        if self.method != "card":
+        if self.name != "card":
             raise MppSellerConfigurationError("card_request requires a CARD Seller")
         result = _card_profile(self._config)
         result["amount"] = _dollar_cents(request.get("amount"), "CARD")
@@ -339,13 +352,15 @@ class Seller:
             **({"instrumentId": details["instrumentId"]} if "instrumentId" in details else {}),
         }
 
-    async def validate(self, credential: Credential, request: WireObject) -> Validation:
-        if self.method == "card":
+    async def _validate(self, context: ValidateContext) -> Validation:
+        credential = _plain_credential(context.credential)
+        request = context.request
+        if self.name == "card":
             try:
                 validate_payload("card", credential.payload)
             except MppCodecError as error:
                 raise InvalidChallengeError(credential.challenge.id, str(error)) from error
-        if self.method == "stripe":
+        if self.name == "stripe":
             if not isinstance(credential.payload.get("spt"), str) or (
                 "externalId" in credential.payload
                 and not isinstance(credential.payload["externalId"], str)
@@ -391,7 +406,8 @@ class Seller:
             request=deepcopy(request),
         )
 
-    async def broadcast(self, credential: Credential, request: WireObject) -> Receipt:
+    async def _broadcast(self, context: VerifyContext) -> Receipt:
+        credential = context.credential
         details = object_value(decode(credential.challenge.request)).get("methodDetails")
         flags = object_value(self._config["featureFlags"])
         headers = (
@@ -435,5 +451,7 @@ class Seller:
             external_id=receipt.external_id,
             subscription_id=receipt.subscription_id,
             extra=receipt.extra,
+            extensions=receipt.extensions,
+            funding_currency=receipt.funding_currency,
             _wire=wire,
         )

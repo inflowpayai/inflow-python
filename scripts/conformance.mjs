@@ -21,50 +21,6 @@ export function checkContract(path, revision) {
   )
     throw new Error(`Use a clean contract checkout at ${revision}`);
 }
-const descriptionIssue = "https://github.com/tempoxyz/pympp/issues/272";
-const descriptionCase = "mpp.card.verify-reference";
-
-export function acceptsDescriptionFailure(report, diagnostic) {
-  const failures = report.results.filter((item) => item.status !== "passed");
-  return (
-    report.completed === true &&
-    !report.runner_error &&
-    !report.passed &&
-    report.implementation.dependencies.pympp === "0.11.0" &&
-    failures.length === 1 &&
-    failures[0].case_id === descriptionCase &&
-    failures[0].suite === "mpp-seller" &&
-    failures[0].status === "failed" &&
-    failures[0].message === "Unexpected platform request at exchange 2" &&
-    diagnostic?.completed === true &&
-    diagnostic.passed === true &&
-    !diagnostic.runner_error &&
-    diagnostic.results.length === 1 &&
-    diagnostic.results[0].case_id === descriptionCase &&
-    diagnostic.results[0].status === "passed"
-  );
-}
-
-export function descriptionDiagnostic(index) {
-  const item = structuredClone(
-    index.cases.find((item) => item.id === descriptionCase),
-  );
-  if (!item?.input.credential.challenge.description)
-    throw new Error("Description fixture changed; review pympp#272 allowance");
-  // Keep the caller's complete credential; the platform echoes the received credential.
-  for (const exchange of item.platform.exchanges) {
-    if (exchange.request.json?.credential) {
-      exchange.request = structuredClone(exchange.request);
-      delete exchange.request.json.credential.challenge.description;
-    }
-    if (exchange.response?.json?.credential) {
-      exchange.response = structuredClone(exchange.response);
-      delete exchange.response.json.credential.challenge.description;
-      delete exchange.response.json.challenge.description;
-    }
-  }
-  return { ...index, cases: [item] };
-}
 async function main() {
   const { values } = parseArgs({
     options: {
@@ -157,7 +113,7 @@ async function main() {
                     {
                       id: "mpp-seller-subscriptions",
                       reason:
-                        "pympp Seller routes do not expose subscription terms; see tempoxyz/pympp#269.",
+                        "The InFlow Seller implements charge routes only; Buyer subscriptions are supported.",
                     },
                   ]
                 : [],
@@ -173,41 +129,7 @@ async function main() {
         console.log(
           `${suite}: ${report.results.filter((r) => r.status === "passed").length}/${report.results.length} passed`,
         );
-        let accepted = false;
-        if (suite === "card") {
-          const diagnostic = await run({
-            ...configuration,
-            index: descriptionDiagnostic(configuration.index),
-            capabilities: {
-              ...configuration.capabilities,
-              suites: ["mpp-seller"],
-            },
-          });
-          const diagnosticOutput = await open(
-            join(outputDirectory, "card-description-diagnostic.json"),
-            "wx",
-            0o600,
-          );
-          try {
-            await diagnosticOutput.writeFile(
-              JSON.stringify(diagnostic, null, 2) + "\n",
-            );
-          } finally {
-            await diagnosticOutput.close();
-          }
-          accepted = acceptsDescriptionFailure(report, diagnostic);
-          if (accepted)
-            console.warn(
-              `Known failed case ${descriptionCase}: ${descriptionIssue}`,
-            );
-          else {
-            process.exitCode = 1;
-            console.error(
-              `Review or remove the pympp#272 allowance: ${descriptionIssue}`,
-            );
-          }
-        }
-        if (!report.passed && !accepted) {
+        if (!report.passed) {
           process.exitCode = 1;
           console.error(
             report.runner_error ??

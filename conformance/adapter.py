@@ -9,8 +9,10 @@ import httpx
 from fastapi import FastAPI, Request
 from mpp import Challenge, Credential, Receipt
 from mpp.errors import InvalidChallengeError
+from mpp.runtime import CredentialParams
+from mpp.server import Mpp, ServerMethod
 from mpp.server.decorator import pay
-from mpp.server.intent import broadcast_credential
+from mpp.server.method import ValidateContext, VerifyContext
 from starlette.responses import JSONResponse
 from x402.schemas import PaymentPayload, PaymentRequirements, ResourceInfo
 
@@ -142,7 +144,7 @@ async def mpp_execute(operation: str, data: Data) -> object:
             return mpp.parse_challenge_headers(data["headers"])
     if operation in ("mpp.buyer.fulfil", "mpp.buyer.cancel"):
         challenge = mpp.to_pympp_challenge(data["challenge"])
-        payment: asyncio.Task[Credential]
+        payment: asyncio.Future[str]
 
         class Observe(httpx.AsyncHTTPTransport):
             async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
@@ -164,8 +166,10 @@ async def mpp_execute(operation: str, data: Data) -> object:
             subscription_id=data["context"].get("subscriptionId"),
             merchant=data["context"].get("merchant"),
         ) as buyer:
-            payment = asyncio.create_task(buyer.create_credential(challenge))
-            return mpp.decode_credential((await payment).to_authorization()[8:])
+            payment = asyncio.ensure_future(
+                buyer.create_credential(CredentialParams(challenge=challenge))
+            )
+            return mpp.decode_credential((await payment)[8:])
     allowed = (
         "mpp.seller.prepare",
         "mpp.seller.validate",
@@ -185,16 +189,28 @@ async def mpp_execute(operation: str, data: Data) -> object:
             )
         if operation == "mpp.seller.route-binding":
             return await route_binding(seller, data)
+        assert wire is not None
         credential = Credential.from_authorization("Payment " + mpp.encode(wire))
         request = mpp.decode(credential.challenge.request)
         if not isinstance(request, dict):
             raise RuntimeError("Expected an object request")
         if operation == "mpp.seller.verify":
-            receipt = await broadcast_credential(
-                intent=seller, credential=credential, request=request
+            receipt, _ = await seller.settle(
+                VerifyContext(
+                    credential=credential,
+                    request=request,
+                    challenge=mpp.to_pympp_challenge(wire["challenge"]),
+                )
             )
             return mpp.decode_receipt(receipt.to_payment_receipt())
-        value = await seller.validate(credential, request)
+        assert seller.validate is not None
+        value = await seller.validate(
+            ValidateContext(
+                credential=credential,
+                request=request,
+                challenge=mpp.to_pympp_challenge(wire["challenge"]),
+            )
+        )
         observed = mpp.decode_credential(value.credential.to_authorization()[8:])
         observed.setdefault("source", "")
         return {
@@ -212,17 +228,24 @@ async def mpp_execute(operation: str, data: Data) -> object:
 async def route_binding(seller: MppSeller, data: Data, *, prepare_only: bool = False) -> object:
     app = FastAPI()
     prepare = {"stripe": seller.stripe_request, "card": seller.card_request}.get(
-        seller.method, seller.charge_request
+        seller.name, seller.charge_request
     )
     terms = prepare(data["request"])
 
     @app.get("/test")
     @pay(
-        intent=seller,
-        method=seller.method,
-        request=lambda _: terms,
-        realm="seller.example",
-        secret_key="test-only-binding-secret-at-least-32-bytes",
+        Mpp(
+            methods=[
+                ServerMethod(
+                    method=seller.method,
+                    validate=seller.validate,
+                    broadcast=seller.broadcast,
+                    resolve_request=lambda _: terms,
+                )
+            ],
+            realm="seller.example",
+            secret_key="test-only-binding-secret-at-least-32-bytes",
+        ).charge()
     )
     async def handler(request: Request, credential: Credential, receipt: Receipt) -> JSONResponse:
         return JSONResponse({"ok": True})
@@ -374,14 +397,16 @@ async def runtime_call(product: str, config: ClientOptions) -> None:
     if product == "mpp-buyer":
         async with BuyerMethod(config) as buyer:
             await buyer.create_credential(
-                mpp.to_pympp_challenge(
-                    {
-                        "id": "test",
-                        "realm": "seller.example",
-                        "method": "inflow",
-                        "intent": "charge",
-                        "request": mpp.encode({"amount": "1", "currency": "USD"}),
-                    }
+                CredentialParams(
+                    challenge=mpp.to_pympp_challenge(
+                        {
+                            "id": "test",
+                            "realm": "seller.example",
+                            "method": "inflow",
+                            "intent": "charge",
+                            "request": mpp.encode({"amount": "1", "currency": "USD"}),
+                        }
+                    )
                 )
             )
     elif product == "mpp-seller":

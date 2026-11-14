@@ -5,6 +5,7 @@ import httpx
 import pytest
 from fastapi import FastAPI, Request
 from mpp import Challenge, Credential, Receipt
+from mpp.server import Mpp
 from mpp.server.decorator import pay
 from starlette.responses import JSONResponse
 from x402.schemas import AssetAmount
@@ -15,6 +16,7 @@ from inflowpay.mpp.buyer import BuyerMethod, MppPaymentFailedError
 from inflowpay.mpp.seller import MppCredentialProblemError, Seller
 from inflowpay.x402._seller import SellerConfig, build_offers
 from inflowpay.x402.buyer import Buyer
+from mpp_support import broadcast, create_credential
 from test_mpp_buyer import WIRE
 from test_mpp_seller import RECEIPT, Platform, options
 from test_x402_buyer import REQUIREMENT, RESOURCE
@@ -132,11 +134,11 @@ async def test_instrument_receipt_binding(mode: str) -> None:
     credential = Credential(challenge=challenge.to_echo(), payload={"transactionId": "test"})
     async with await Seller.create(options(platform)) as seller:
         if mode == "success":
-            result = await seller.broadcast(credential, challenge.request)
+            result = await broadcast(seller, credential, challenge.request)
             assert result.method == "inflow"
         else:
             with pytest.raises(MppCredentialProblemError):
-                await seller.broadcast(credential, challenge.request)
+                await broadcast(seller, credential, challenge.request)
     assert [r.url.path for r in platform.requests] == ["/v1/mpp/config", "/v1/mpp/broadcast"]
 
 
@@ -150,7 +152,7 @@ async def test_failed_payment_keeps_response_identifier(identifier: str | None) 
 
     async with BuyerMethod(ClientOptions(transport=httpx.MockTransport(handle))) as buyer:
         with pytest.raises(MppPaymentFailedError) as result:
-            await buyer.create_credential(to_pympp_challenge(WIRE))
+            await create_credential(buyer, to_pympp_challenge(WIRE))
     assert result.value.transaction_id == identifier
     assert result.value.problem == {"title": "Declined"}
 
@@ -164,11 +166,9 @@ async def test_instrument_route_requires_matching_receipt(matches: bool) -> None
 
         @app.get("/paid")
         @pay(
-            intent=seller,
-            request=seller.charge_request({"amount": "1", "currency": "USD"}),
-            method="inflow",
-            realm="seller.example",
-            secret_key="test-only-secret",
+            Mpp(methods=[seller], realm="seller.example", secret_key="test-only-secret").charge(
+                **seller.charge_request({"amount": "1", "currency": "USD"})
+            )
         )
         async def resource(
             request: Request, credential: Credential, receipt: Receipt

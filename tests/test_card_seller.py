@@ -7,12 +7,14 @@ import pytest
 from fastapi import FastAPI, Request
 from mpp import Challenge, Credential, Receipt
 from mpp.errors import InvalidChallengeError
+from mpp.server import Mpp, ServerMethod
 from mpp.server.decorator import pay
 from starlette.responses import JSONResponse
 
 from inflowpay.mpp import MppCodecError, WireObject, decode
 from inflowpay.mpp._requests import validate_payload, validate_request
 from inflowpay.mpp.seller import MppSellerConfigurationError, Seller
+from mpp_support import validate
 from test_mpp_seller import CONFIG, PROBLEM, RECEIPT, Platform, options
 
 KEY: WireObject = {
@@ -186,7 +188,9 @@ async def test_payload_rejection(field: str, value: object) -> None:
             secret_key="test", realm="seller", method="card", intent="charge", request=TERMS
         )
         with pytest.raises(InvalidChallengeError):
-            await seller.validate(Credential(challenge=challenge.to_echo(), payload=payload), TERMS)
+            await validate(
+                seller, Credential(challenge=challenge.to_echo(), payload=payload), TERMS
+            )
     assert len(transport.requests) == 1
 
 
@@ -224,12 +228,18 @@ async def test_route(outcome: str) -> None:
 
         @app.get("/paid")
         @pay(
-            intent=seller,
-            method="card",
-            request=lambda _: terms,
-            description="Report",
-            realm="seller",
-            secret_key="test-secret",
+            Mpp(
+                methods=[
+                    ServerMethod(
+                        method=seller.method,
+                        validate=seller.validate,
+                        broadcast=seller.broadcast,
+                        resolve_request=lambda _: terms,
+                    )
+                ],
+                realm="seller",
+                secret_key="test-secret",
+            ).charge(description="Report")
         )
         async def paid(request: Request, credential: Credential, receipt: Receipt) -> JSONResponse:
             delivered.append(True)

@@ -21,6 +21,7 @@ from inflowpay.mpp.buyer import (
     MppPaymentFailedError,
     payment_transport,
 )
+from mpp_support import create_credential
 from test_card_seller import PAYLOAD, TERMS
 from test_mpp_buyer import ID, PENDING, Exchange, server
 
@@ -90,7 +91,7 @@ async def test_options_snapshot_and_credential(selected: bool) -> None:
         instrument_id=ID if selected else None,
     ) as buyer:
         merchant["name"] = "Changed by caller"
-        credential = await buyer.create_credential(to_pympp_challenge(CHALLENGE))
+        credential = await create_credential(buyer, to_pympp_challenge(CHALLENGE))
     assert calls == [
         {
             "challenge": CHALLENGE,
@@ -122,7 +123,7 @@ async def test_rejects_changed_challenge(field: str, value: JsonValue) -> None:
         merchant=MERCHANT,
     ) as buyer:
         with pytest.raises(MppMalformedCredentialError):
-            await buyer.create_credential(to_pympp_challenge(CHALLENGE))
+            await create_credential(buyer, to_pympp_challenge(CHALLENGE))
 
 
 @pytest.mark.parametrize(
@@ -156,7 +157,7 @@ async def test_invalid_ready_cancels_approval(response: WireObject) -> None:
         merchant=MERCHANT,
     ) as buyer:
         with pytest.raises(MppMalformedCredentialError):
-            await buyer.create_credential(to_pympp_challenge(CHALLENGE))
+            await create_credential(buyer, to_pympp_challenge(CHALLENGE))
     assert paths == ["/v1/transactions/mpp", "/v1/approvals/approval/cancel"]
 
 
@@ -293,7 +294,7 @@ async def test_cancel_and_unknown_creation_do_not_repay() -> None:
         method="card",
         merchant=MERCHANT,
     ) as buyer:
-        task = asyncio.create_task(buyer.create_credential(to_pympp_challenge(CHALLENGE)))
+        task = asyncio.create_task(create_credential(buyer, to_pympp_challenge(CHALLENGE)))
         await asyncio.wait_for(entered.wait(), 2)
         await buyer.cleanup()
         with pytest.raises(asyncio.CancelledError):
@@ -317,5 +318,5 @@ async def test_cancel_and_unknown_creation_do_not_repay() -> None:
         merchant=MERCHANT,
     ) as buyer:
         with pytest.raises(InflowApiError):
-            await buyer.create_credential(to_pympp_challenge(CHALLENGE))
+            await create_credential(buyer, to_pympp_challenge(CHALLENGE))
     assert attempts == 1

@@ -29,24 +29,24 @@ Issues = "https://github.com/inflowpayai/inflow-python/issues"
 Repository = "https://github.com/inflowpayai/inflow-python"
 
 [project.optional-dependencies]
-evm = ["x402[evm]>=2.25.0,<3"]
+evm = ["x402[evm]>=2.28.0,<3"]
 fastapi = ["fastapi>=0.142.2,<1"]
-mcp = ["mcp>=1.30.0,<2", "pympp[mcp]>=0.11.0,<0.12", "x402[mcp]>=2.25.0,<3"]
-mpp = ["pympp>=0.11.0,<0.12", "rfc8785>=0.1.4,<0.2"]
-svm = ["x402[svm]>=2.25.0,<3"]
+mcp = ["mcp>=1.30.0,<2", "pympp[mcp]>=0.22.0,<0.23", "x402[mcp]>=2.28.0,<3"]
+mpp = ["pympp>=0.22.0,<0.23", "rfc8785>=0.1.4,<0.2"]
+svm = ["x402[svm]>=2.28.0,<3"]
 tap = ["cryptography>=50.0.2,<51"]
-x402 = ["x402>=2.25.0,<3"]
+x402 = ["x402>=2.28.0,<3"]
 
 [dependency-groups]
 dev = [
   "build==1.6.1",
-  "mypy==2.4.0",
+  "mypy==2.4.1",
   "pytest==9.2.0",
-  "pytest-asyncio==1.4.1",
+  "pytest-asyncio==1.5.0",
   "pytest-cov==7.1.0",
-  "ruff==0.17.4",
+  "ruff==0.17.5",
   "twine==7.0.0",
-  "uvicorn==0.54.0",
+  "uvicorn==0.52.4",
 ]
 
 [tool.hatch.build.targets.sdist]
@@ -73,6 +73,7 @@ addopts = [
   "--strict-markers",
 ]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 pythonpath = ["."]
 testpaths = ["tests"]
 
