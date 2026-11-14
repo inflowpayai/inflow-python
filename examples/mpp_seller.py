@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI, Request
 from mpp import Credential, Receipt
+from mpp.server import Mpp
 from mpp.server.decorator import pay
 from starlette.responses import JSONResponse
 
@@ -30,13 +31,7 @@ async def application(
         app = FastAPI()
 
         @app.get("/api/widgets")
-        @pay(
-            intent=seller,
-            method=seller.method,
-            request=terms,
-            realm="localhost",
-            secret_key=secret,
-        )
+        @pay(Mpp(methods=[seller], realm="localhost", secret_key=secret).charge(**terms))
         async def widgets(
             request: Request, credential: Credential, receipt: Receipt
         ) -> JSONResponse:

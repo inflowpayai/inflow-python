@@ -10,6 +10,7 @@ import httpx
 import uvicorn
 from fastapi import FastAPI, Request
 from mpp import Credential, Receipt
+from mpp.server import Mpp
 from mpp.server.decorator import pay
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import JSONResponse, Response
@@ -148,11 +149,11 @@ async def run(settings: dict[str, Any]) -> None:
 
             @app.get("/paid")
             @pay(
-                intent=seller,
-                method=seller.method,
-                request=terms,
-                realm="interop",
-                secret_key="test-only-binding-secret-at-least-32-bytes",
+                Mpp(
+                    methods=[seller],
+                    realm="interop",
+                    secret_key="test-only-binding-secret-at-least-32-bytes",
+                ).charge(**terms)
             )
             async def paid(
                 request: Request, credential: Credential, receipt: Receipt

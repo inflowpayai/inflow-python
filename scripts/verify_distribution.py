@@ -76,11 +76,14 @@ receipt = dict(status='success', inflowTransactionId=transaction_id)
 assert get_inflow_transaction_id(receipt) == transaction_id
 from inflowpay.mpp.buyer import BuyerMethod, payment_transport
 from inflowpay.mpp.seller import Seller
+from mpp.runtime import ClientMethod, CredentialParams
+from mpp.server import ServerMethod
 from inflowpay import ClientOptions
 import asyncio
 import httpx
 async def check_buyer():
     async with BuyerMethod(ClientOptions()) as buyer:
+        assert isinstance(buyer, ClientMethod)
         transport = payment_transport([buyer])
         await transport.aclose()
 asyncio.run(check_buyer())
@@ -99,8 +102,9 @@ async def check_card_buyer():
         return httpx.Response(200, json=dict(state='ready', credential=credential))
     async with BuyerMethod(ClientOptions(transport=httpx.MockTransport(respond)),
                            method='card', merchant=merchant) as buyer:
-        credential = await buyer.create_credential(to_pympp_challenge(wire))
-        assert decode(credential.to_authorization()[8:]) == dict(challenge=wire, payload=payload)
+        credential = await buyer.create_credential(
+            CredentialParams(challenge=to_pympp_challenge(wire)))
+        assert decode(credential[8:]) == dict(challenge=wire, payload=payload)
 asyncio.run(check_card_buyer())
 async def check_seller():
     transport = httpx.MockTransport(lambda request: httpx.Response(200, json={
@@ -111,6 +115,7 @@ async def check_seller():
     }))
     options = ClientOptions(api_key='test-key', transport=transport)
     async with await Seller.create(options) as seller:
+        assert isinstance(seller, ServerMethod)
         assert seller.charge_request({'amount': '0.50', 'currency': 'USDC'})['amount'] == '0.50'
 asyncio.run(check_seller())
 wire = dict(id='test', realm='seller.example', method='inflow', intent='charge',
@@ -235,8 +240,9 @@ def main() -> None:
         )
         subprocess.run([str(python), "-I", "-c", OPTIONAL_CONSUMER], cwd=temporary, check=True)
         subprocess.run(
-            ["uv", "pip", "install", "--python", str(python), "uvicorn==0.54.0"], check=True
+            ["uv", "pip", "install", "--python", str(python), "uvicorn==0.52.4"], check=True
         )
+        subprocess.run(["uv", "pip", "check", "--python", str(python)], check=True)
         shutil.copytree(
             repository / "examples",
             temporary / "examples",

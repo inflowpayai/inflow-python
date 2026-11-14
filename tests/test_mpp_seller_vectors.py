@@ -6,14 +6,15 @@ import httpx
 import pytest
 from fastapi import FastAPI, Request
 from mpp import Challenge, Credential, Receipt
+from mpp.server import Mpp, ServerMethod
 from mpp.server.decorator import pay
-from mpp.server.intent import broadcast_credential
 from starlette.responses import JSONResponse
 
 from inflowpay import ClientOptions
 from inflowpay.mpp import WireObject, decode, encode
 from inflowpay.mpp._wire import object_value, string
 from inflowpay.mpp.seller import MppCredentialProblemError, MppSellerConfigurationError, Seller
+from mpp_support import settle, validate
 
 # The fixture is the shared charge corpus; Seller subscriptions are outside the approved scope.
 CASES = cast(
@@ -30,11 +31,18 @@ async def route_binding(seller: Seller, data: WireObject) -> WireObject:
 
     @app.get("/paid")
     @pay(
-        intent=seller,
-        request=lambda _: terms,
-        method=seller.method,
-        realm="seller.test",
-        secret_key="local-test-secret",
+        Mpp(
+            methods=[
+                ServerMethod(
+                    method=seller.method,
+                    validate=seller.validate,
+                    broadcast=seller.broadcast,
+                    resolve_request=lambda _: terms,
+                )
+            ],
+            realm="seller.test",
+            secret_key="local-test-secret",
+        ).charge()
     )
     async def paid(request: Request, credential: Credential, receipt: Receipt) -> JSONResponse:
         return JSONResponse({"paid": True})
@@ -105,7 +113,7 @@ async def test_shared_seller(case: WireObject) -> None:
                 credential = Credential.from_authorization("Payment " + encode(credential_wire))
                 request = object_value(decode(string(challenge["request"])))
                 if operation == "mpp.seller.validate":
-                    accepted = await seller.validate(credential, request)
+                    accepted = await validate(seller, credential, request)
                     result = {
                         "success": True,
                         "challenge": challenge,
@@ -118,9 +126,7 @@ async def test_shared_seller(case: WireObject) -> None:
                     }
                 else:
                     assert operation == "mpp.seller.verify"
-                    receipt = await broadcast_credential(
-                        intent=seller, credential=credential, request=request
-                    )
+                    receipt = await settle(seller, credential, request)
                     result = decode(receipt.to_payment_receipt())
             actual: object = {"result": result}
         except MppCredentialProblemError as error:

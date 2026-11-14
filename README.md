@@ -220,11 +220,18 @@ to the seller. Keep redirects disabled on the HTTPX client, its default setting.
 
 ### Select a payment method
 
-`BuyerMethod` implements pympp's asynchronous method interface. Pass it to
+`BuyerMethod` is a native pympp `ClientMethod` with asynchronous resource cleanup. Pass it to
 `payment_transport` for HTTP requests or to pympp's `PaymentRuntime` for an existing
-integration. You can also call `await method.create_credential(challenge)` with a
-pympp `Challenge`; the result is a pympp `Credential` whose `to_authorization()`
-retains the platform's payload, payer source, and additional wire fields.
+integration. For direct credential creation, call
+`await method.create_credential(CredentialParams(challenge=challenge))`, importing
+`CredentialParams` from `mpp.runtime`. The result is the complete `Payment ...`
+authorization string, retaining the platform's payload, payer source, and additional
+wire fields. Send that string without parsing and rebuilding it.
+
+Use InFlow's `payment_transport` when sending HTTP payments: it preserves those
+fields through pympp's request retry. Plain pympp `PaymentRuntime` and `McpClient`
+rebuild credentials using fixed-field models and can drop additional credential
+fields and an empty `source`. Their normal payment payload is retained.
 
 | Constructor settings | Behavior |
 | --- | --- |
@@ -236,8 +243,9 @@ retains the platform's payload, payer source, and additional wire fields.
 | `intent="subscription", subscription_id="..."` | Authorize access using that existing subscription and the current seller challenge; do not purchase another subscription. |
 
 Instrument and subscription identifiers are UUID strings. They are fixed when the
-method is constructed. Unlike Node's per-call context, pympp passes only a challenge
-to a method. Use separate method instances for different selections; do not change
+method is constructed. This adapter rejects nonempty per-call `context`; configure
+selectors on the constructor instead.
+Use separate method instances for different selections; do not change
 one instance's settings between concurrent requests. Do not register several methods
 with the same method/intent expecting pympp to choose a funding instrument: pympp
 selects the first matching method. Select the intended instance in your application.
@@ -363,11 +371,11 @@ account key does not authorize Seller configuration, validation, or broadcast.
 `await Seller.create(options)` loads Seller configuration before returning. A
 failed or cancelled setup closes its HTTP transport; retry setup with fresh
 options/transport as needed. Successful configuration stays fixed for that Seller
-instance. Unlike Node's asynchronous request hook, pympp's request transformation
-is synchronous, so configuration is loaded during application startup rather than
-inside a route. There is no background initialization or periodic refresh.
+instance. Configuration is loaded during application startup, before the Seller
+is registered with pympp. There is no background initialization or periodic refresh.
 
-Use pympp's standalone `pay` decorator with the Seller as its charge intent:
+The Seller is a native pympp `ServerMethod`. Register it with `Mpp`, prepare the
+wire request, and pass the configured charge handler to `pay`:
 
 ```python
 import os
@@ -375,6 +383,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from mpp import Credential, Receipt
+from mpp.server import Mpp
 from mpp.server.decorator import pay
 from starlette.responses import JSONResponse
 
@@ -388,22 +397,19 @@ async def application():
         ClientOptions(environment="sandbox", api_key=os.environ["INFLOW_API_KEY"])
     ) as seller:
         app = FastAPI()
-
-        @app.get("/report")
-        @pay(
-            intent=seller,
-            method=seller.method,
-            request=seller.charge_request({"amount": "0.50", "currency": "USDC"}),
+        payments = Mpp(
+            methods=[seller],
             realm="api.example.com",
             secret_key=os.environ["MPP_SECRET_KEY"],
         )
+        terms = seller.charge_request({"amount": "0.50", "currency": "USDC"})
+
+        @app.get("/report")
+        @pay(payments.charge(**terms))
         async def report(
             request: Request, credential: Credential, receipt: Receipt
         ) -> JSONResponse:
-            return JSONResponse(
-                {"report": "Paid content"},
-                headers={"Payment-Receipt": receipt.to_payment_receipt()},
-            )
+            return JSONResponse({"report": "Paid content"})
 
         yield app
 ```
@@ -411,7 +417,7 @@ async def application():
 Run your ASGI server inside `async with application() as app` so the Seller stays
 open until the server finishes serving requests. Keep `MPP_SECRET_KEY` stable and
 private across replicas serving the same challenges. It authenticates challenges
-locally and is separate from the InFlow API key. Set `requires_auth=True` on `pay`
+locally and is separate from the InFlow API key. Set `requires_auth=True` on `Mpp`
 when application authentication uses `Authorization`; pympp then uses
 `Payment-Authorization` for the payment credential. The decorator does not implement
 your application's authentication or access-control policy.
@@ -456,10 +462,11 @@ Payment rejections raise `MppCredentialProblemError`, retaining the platform
 `problem`; pympp renders it as a payment error response. Invalid lifecycle responses
 produce a fixed verification-failed problem. HTTP failures remain `InflowApiError`.
 Receipts preserve the platform's timestamp precision and additional wire fields.
-The endpoint must explicitly attach the `Payment-Receipt` header, as above.
+The `pay` decorator attaches the `Payment-Receipt` header to the handler's response.
 
-Seller subscriptions and multiple InFlow offers on one endpoint are excluded for
-the upstream reasons documented below. Buyer subscription support is independent.
+The Seller implements charge payments only. Buyer subscription support is independent.
+The native methods can be registered with upstream's engine; additional InFlow
+subscription and session Seller APIs are not provided.
 
 ## Upstream MPP compatibility
 
@@ -520,9 +527,9 @@ The application does not need a Stripe secret key.
 Use `seller.stripe_request({"amount": "1.25"})` to prepare USD 1.25. This method
 accepts dollar strings from `"0.50"` through `"999999.99"` and returns integer
 cents in the challenge. Extra fractional digits are rejected, not rounded.
-Pass its result to the standalone `mpp.server.pay` decorator with `method="stripe"`
-and `intent=seller`. Do not pass dollar prices directly to pympp's high-level
-route helpers. Currency, precision, network profile, and payment-method options
+Register the Seller with `Mpp(methods=[seller], ...)`, then pass the prepared
+request to `payments.charge(**terms)` and wrap the endpoint with `pay`.
+Use `stripe_request` to convert dollars before configuring the charge handler. Currency, precision, network profile, and payment-method options
 cannot override the configured USD Stripe offer.
 
 Optional `externalId` identifies the purchase; a credential must repeat it exactly
@@ -545,7 +552,7 @@ network, and RSA public encryption key. Setup fails when that profile is unavail
 or incomplete; the application cannot override these fields when pricing a route.
 
 Use `seller.card_request({"amount": "1.25"})` to prepare USD 1.25, then pass the result
-to the standalone `pay` decorator with `method="card"` and `intent=seller`. Amounts
+to `payments.charge(**terms)` on a `Mpp` instance registered with that Seller. Amounts
 are decimal dollar strings from `"0.50"` through `"999999.99"`, converted exactly to
 integer cents. Optional `billingRequired` is a boolean; an omitted value remains
 omitted. Optional `externalId` allows up to 255 characters, including an empty string.
@@ -553,80 +560,42 @@ omitted. Optional `externalId` allows up to 255 characters, including an empty s
 The SDK checks the encrypted credential's structure without decrypting it, forwards
 it to InFlow for validation and settlement, and requires a successful receipt for
 the same CARD challenge before delivery. pympp checks the signed challenge and route
-terms first. The description-preservation limitation below applies to this seller
-flow, even when a buyer preserves the full challenge.
+terms first, including the challenge description.
 
-### Challenge description preservation
+### Native MPP interfaces
 
-pympp 0.11.0 drops the optional, top-level `challenge.description` when converting
-a challenge to a credential echo or parsing and serializing a credential. This
-affects the pympp-backed payment flow, including CARD. A Seller forwarding a
-parsed credential therefore sends it without that description, even when the
-Buyer supplied one. The encoded request, payment amount, and encrypted payload
-are not changed by this omission. A `description` inside the request is a
-different field and is not the field lost here.
+The integration uses pympp's native `ClientMethod` and `ServerMethod` interfaces.
+`BuyerMethod` and `Seller` retain their asynchronous context managers so closing
+them cancels Buyer work and releases their InFlow HTTP clients.
 
-Applications that require an exact copy of the complete challenge cannot rely on
-these conversions when `challenge.description` is present. Challenges without
-that optional field avoid this particular limitation. Do not treat a missing
-description as evidence that a payment failed or submit a replacement payment
-because of it.
+A method's `name` identifies the payment method, such as `"inflow"` or `"card"`;
+`intent` is `"charge"` or the Buyer's `"subscription"`. Its `method` attribute is
+the upstream method definition, not a string. Seller prices are prepared using
+`charge_request`, `stripe_request`, or `card_request` before configuring a route.
+The method's request model preserves those wire amounts without further conversion.
 
-[Upstream issue #272](https://github.com/tempoxyz/pympp/issues/272) tracks this
-credential-format defect against the MPP draft and mppx. The Seller does
-not replace pympp's credential parser or reconstruct a missing description. InFlow's
-Buyer retains the original challenge fields when producing its outgoing credential;
-that does not prevent a receiving pympp Seller from dropping the description.
+Use `Mpp.validate_credential` and `Mpp.broadcast_credential` for a split lifecycle,
+providing the intended route's request and HTTP context as required by pympp.
+These entry points authenticate the credential before reaching the Seller hooks.
+Validation is non-mutating; broadcast may still fail after successful validation.
+Never invoke the protected application handler based on validation alone.
 
-Shared conformance executes the description-preservation case and reports its
-failure. CI permits that specific pympp 0.11.0 failure only when a companion check
-confirms that the same operation succeeds with just the outbound description
-omitted and the platform echoing that received credential. Other failures remain
-blocking. An upstream version change or an unexpected pass requires reviewing or
-removing the allowance.
+## Migrating from InFlow Python 0.3
 
-### Seller route limitations
+This dependency upgrade requires an InFlow minor-version release. Integrations
+using the previous MPP API need these changes:
 
-InFlow charges use decimal amounts: `"0.50"` means half a unit of the specified
-currency. pympp 0.11.0's high-level `Mpp.pay` and `Mpp.compose` helpers convert
-prices to integer token units instead. Do not pass InFlow decimal prices through
-those helpers. The standalone `mpp.server.pay` decorator accepts a complete
-request dictionary and preserves its amount when no `decimals` field is supplied.
-The endpoint handler must attach the returned receipt to its response using
-`receipt.to_payment_receipt()` as the `Payment-Receipt` header value.
+- Direct Buyer calls take `CredentialParams(challenge=...)` and return a serialized
+  authorization string, rather than taking a bare Challenge and returning a Credential.
+- Register Sellers with `Mpp(methods=[seller], realm=..., secret_key=...)` and use
+  `@pay(payments.charge(**prepared_request))` instead of `@pay(intent=seller, ...)`.
+- Read the payment method identifier from `seller.name`, not `seller.method`.
+- Use the engine's validation and broadcast entry points for authenticated split
+  execution. Native hook callbacks accept upstream context objects, not two positional
+  credential and request arguments.
 
-Multiple InFlow offers on one endpoint and Seller subscription routes are not
-supported by this integration. Upstream composition does not accept the standalone
-decorated handlers, and its fixed route options do not expose subscription terms
-such as `periodUnit`, `periodCount`, and `subscriptionExpires`. These are separate
-limitations; neither changes the Buyer subscription support described above.
-
-[Upstream issue #268](https://github.com/tempoxyz/pympp/issues/268) tracks parity
-with mppx's method-specific amount handling.
-[Upstream issue #269](https://github.com/tempoxyz/pympp/issues/269) separately tracks
-subscription request fields in Seller routes and composition.
-The integration does not reverse upstream's token conversion or implement a separate
-offer-selection system to bypass these limitations.
-
-### MCP payment receipts
-
-[pympp](https://github.com/tempoxyz/pympp) provides Python support for the Machine
-Payments Protocol (MPP), including payments for Model Context Protocol (MCP) tools.
-Its `MCPReceipt` conversion in version 0.11.0 drops `externalId`, `subscriptionId`,
-and `extra` from a core payment receipt. Its MCP receipt parser also discards these
-fields and additional top-level fields supplied by a server.
-
-For an integrator, this means a successful MCP tool payment can return a receipt
-without the subscription or external reference needed to associate it with an
-application record. Missing receipt metadata is not evidence that the payment
-failed; do not repeat a payment to recover these identifiers. The MCP conversion
-does not affect HTTP `Payment-Receipt` serialization.
-
-[Upstream PR #267](https://github.com/tempoxyz/pympp/pull/267) preserves these
-fields and additional receipt extensions through MCP serialization, parsing, and
-core conversions. It also preserves the payment method when converting an MCP
-receipt back to a core receipt. Until that fix is included in the version of
-`pympp` you install, do not rely on its MCP receipt objects to retain those fields.
+Keep existing `async with` or explicit `aclose()` resource management. The InFlow
+server endpoints and payment credential wire formats are unchanged by this migration.
 
 ## x402 models and payment identifiers
 
@@ -855,21 +824,6 @@ buyer.set_spend_controls(False)
 These calls replace the spending-control configuration. They do not register a
 signer or add support for a payment scheme.
 
-#### External-wallet network calls
-
-InFlow-managed payment requests use asynchronous network calls. External-wallet
-payments run through the upstream Python x402 signing implementation. Its Solana
-signer performs synchronous network requests for mint metadata and, when needed,
-a recent blockhash. Those requests block other tasks on the same event loop even
-when the caller awaits `create_payment_payload()`. The upstream TypeScript Solana
-signer awaits these network requests instead.
-
-The Python Buyer preserves upstream signing behavior; it does not move wallet
-signers into background threads. Applications using external wallets should
-account for this blocking work when sharing an event loop with other requests.
-See [upstream issue #3649](https://github.com/x402-foundation/x402/issues/3649)
-for the reproduction and comparison with the TypeScript implementation.
-
 ### EIP-7702 sponsorship
 
 `inflowpay.x402.eip7702.SponsorshipExtension` supports external EVM wallets when
@@ -1051,7 +1005,7 @@ response with a payment failure. Avoid irreversible business side effects in a
 handler without your own reconciliation design. InFlow does not roll back the
 handler's work.
 
-The upstream x402 Python 2.25.0 cache helper can mistake `private` inside a quoted
+The upstream x402 Python cache helper can mistake `private` inside a quoted
 extension value such as `example="a, private, b"` for a real directive. A receipt
 response can therefore lack the intended private cache policy. This is tracked in
 [upstream issue #3747](https://github.com/x402-foundation/x402/issues/3747).
@@ -1080,7 +1034,7 @@ remain asynchronous.
 Capabilities stay fixed for the lifetime of the adapter and its resource server.
 To load capability changes, recreate both instances or restart the application.
 Refreshing only the adapter's data or calling `initialize()` again on the same
-upstream resource server is insufficient: x402 Python 2.25.0 retains existing
+upstream resource server is insufficient: x402 Python retains existing
 capability mappings, including networks removed from the facilitator's response.
 
 This differs from the InFlow Node facilitator's one-hour capability cache. Node

@@ -14,10 +14,12 @@ from uuid import UUID
 import httpx
 from mpp import Challenge, Credential
 from mpp.client.transport import PaymentTransport
-from mpp.runtime import Method
+from mpp.events import CHALLENGE_RECEIVED, EventDispatcher, EventPayload
+from mpp.runtime import ClientMethod, CredentialParams
 
 from .._runtime import Client
 from ..options import ClientOptions
+from ._method import method_definition
 from ._pympp import from_pympp_challenge
 from ._requests import validate_payload, validate_request
 from ._wire import (
@@ -131,7 +133,7 @@ def _card_merchant(value: WireObject | None) -> WireObject:
     return {"name": name, "url": url, "countryCode": country}
 
 
-class BuyerMethod:
+class BuyerMethod(ClientMethod):
     def __init__(
         self,
         options: ClientOptions,
@@ -169,22 +171,33 @@ class BuyerMethod:
             raise ValueError("CARD instrument_id must be a hyphenated UUID")
         if merchant is not None and method != "card":
             raise ValueError("merchant applies only to CARD charge")
-        self._merchant = _card_merchant(merchant) if method == "card" else None
+        object.__setattr__(
+            self, "_merchant", _card_merchant(merchant) if method == "card" else None
+        )
         if subscription_id is not None and intent != "subscription":
             raise ValueError("subscription_id applies only to InFlow subscription")
         if any(not math.isfinite(value) or value < 0 for value in (poll_interval, pending_timeout)):
             raise ValueError("Polling settings must be finite and nonnegative")
-        self.name = method
-        # pympp's MCP matcher recognizes a mapping; its HTTP runtime also iterates these keys.
-        self.intents = {intent: None}
-        # pympp has no per-call context. Bind selectors per instance for concurrent callers.
-        self._instrument_id = instrument_id
-        self._subscription_id = subscription_id
-        self._poll_interval = poll_interval
-        self._pending_timeout = pending_timeout
-        self._client = Client(options)
-        self._active: set[asyncio.Task[Credential]] = set()
-        self._closed = False
+        super().__init__(
+            method=method_definition(method, intent), create_credential=self._credential
+        )
+        # Upstream methods are frozen; only private resource state changes over their lifetime.
+        object.__setattr__(self, "_instrument_id", instrument_id)
+        object.__setattr__(self, "_subscription_id", subscription_id)
+        object.__setattr__(self, "_poll_interval", poll_interval)
+        object.__setattr__(self, "_pending_timeout", pending_timeout)
+        object.__setattr__(self, "_client", Client(options))
+        object.__setattr__(self, "_active", set())
+        object.__setattr__(self, "_closed", False)
+
+    _merchant: WireObject | None
+    _instrument_id: str | None
+    _subscription_id: str | None
+    _poll_interval: float
+    _pending_timeout: float
+    _client: Client
+    _active: set[asyncio.Task[Credential]]
+    _closed: bool
 
     async def __aenter__(self) -> Self:
         return self
@@ -198,7 +211,7 @@ class BuyerMethod:
         await self.aclose()
 
     async def aclose(self) -> None:
-        self._closed = True
+        object.__setattr__(self, "_closed", True)
         try:
             await self.cleanup()
         finally:
@@ -220,11 +233,17 @@ class BuyerMethod:
     async def cancel_approval(self, approval_id: str) -> None:
         await self._client.cancel_approval(approval_id)
 
-    async def create_credential(self, challenge: Challenge) -> Credential:
+    async def _credential(self, params: CredentialParams) -> str:
+        return (await self._credential_object(params)).to_authorization()
+
+    async def _credential_object(self, params: CredentialParams) -> Credential:
         if self._closed:
             raise RuntimeError("MPP Buyer method is closed")
+        if params.context is not None and params.context != {}:
+            raise ValueError("Per-call context is unsupported; configure selectors on BuyerMethod")
+        challenge = params.challenge
         wire = from_pympp_challenge(challenge)
-        if challenge.method != self.name or challenge.intent not in self.intents:
+        if challenge.method != self.name or challenge.intent != self.intent:
             raise ValueError("Challenge does not match this MPP Buyer method")
         validate_request(challenge.method, challenge.intent, decode(challenge.request_b64))
         task = asyncio.create_task(self._create(wire))
@@ -318,10 +337,24 @@ class BuyerMethod:
             raise
 
 
+class _PaymentEvents(EventDispatcher):
+    async def emit(self, name: str, payload: EventPayload, *, first_result: bool = False) -> object:
+        supplied: object = await super().emit(name, payload, first_result=first_result)
+        if name == CHALLENGE_RECEIVED and first_result and supplied is None:
+            method, challenge = payload.get("method"), payload.get("challenge")
+            if isinstance(method, BuyerMethod) and isinstance(challenge, Challenge):
+                # Supply the wire-preserving object before pympp reparses its serialization.
+                # Do not use a normal listener: its exceptions are swallowed, allowing a retry.
+                return await method._credential_object(CredentialParams(challenge=challenge))
+        return supplied
+
+
 def payment_transport(
-    methods: Sequence[Method],
+    methods: Sequence[ClientMethod],
     *,
     inner: httpx.AsyncBaseTransport | None = None,
 ) -> PaymentTransport:
     # pympp creates another credential on each retry. Limit automatic payment to one attempt.
-    return PaymentTransport(methods=methods, inner=inner, max_payment_retries=1)
+    return PaymentTransport(
+        methods=methods, inner=inner, events=_PaymentEvents(), max_payment_retries=1
+    )

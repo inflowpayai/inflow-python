@@ -267,7 +267,7 @@ class Seller:
             if scheme == "upto":
                 from x402.mechanisms.evm.upto import UptoEvmServerScheme
 
-                # Upstream 2.25.0 has an untyped constructor and an inferred flow-map
+                # Upstream has an untyped constructor and an inferred flow-map
                 # type; the object implements SchemeNetworkServer at runtime.
                 server = cast(Callable[[], SchemeNetworkServer], UptoEvmServerScheme)()
             else:

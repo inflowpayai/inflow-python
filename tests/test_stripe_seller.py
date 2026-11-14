@@ -9,11 +9,13 @@ from examples import mpp_seller
 from fastapi import FastAPI, Request
 from mpp import Challenge, Credential, Receipt
 from mpp.errors import InvalidChallengeError
+from mpp.server import Mpp, ServerMethod
 from mpp.server.decorator import pay
 from starlette.responses import JSONResponse
 
 from inflowpay.mpp import MppCodecError, WireObject, decode
 from inflowpay.mpp.seller import MppSellerConfigurationError, Seller
+from mpp_support import validate
 from test_mpp_seller import CONFIG, PROBLEM, RECEIPT, Platform, options
 
 
@@ -92,7 +94,7 @@ async def test_invalid_payload(payload: dict[str, object]) -> None:
         )
         credential = Credential(challenge=challenge.to_echo(), payload=payload)
         with pytest.raises(InvalidChallengeError):
-            await seller.validate(credential, terms)
+            await validate(seller, credential, terms)
     assert len(transport.requests) == 1
 
 
@@ -234,11 +236,18 @@ async def test_protected_route(outcome: str) -> None:
 
         @app.get("/paid")
         @pay(
-            intent=seller,
-            method="stripe",
-            request=lambda _: terms,
-            realm="seller.example",
-            secret_key="test-only-secret",
+            Mpp(
+                methods=[
+                    ServerMethod(
+                        method=seller.method,
+                        validate=seller.validate,
+                        broadcast=seller.broadcast,
+                        resolve_request=lambda _: terms,
+                    )
+                ],
+                realm="seller.example",
+                secret_key="test-only-secret",
+            ).charge()
         )
         async def paid(request: Request, credential: Credential, receipt: Receipt) -> JSONResponse:
             delivered.append(True)

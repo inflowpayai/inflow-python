@@ -16,7 +16,7 @@ from mpp import Challenge
 from mpp.errors import PaymentOutcomeUnknownError
 from mpp.extensions.mcp import McpClient
 from mpp.extensions.mcp.constants import META_CREDENTIAL
-from mpp.runtime import PaymentRuntime
+from mpp.runtime import CredentialParams, PaymentRuntime
 
 from inflowpay import ClientOptions, InflowApiError
 from inflowpay.mpp import (
@@ -35,6 +35,7 @@ from inflowpay.mpp.buyer import (
     MppPaymentTimeoutError,
     payment_transport,
 )
+from mpp_support import create_credential
 
 
 class Request(TypedDict):
@@ -250,7 +251,7 @@ async def test_shared_buyer(case: Case) -> None:
             poll_interval=0,
             pending_timeout=data.get("timeout_ms", 900000) / 1000,
         ) as buyer:
-            payment = asyncio.create_task(buyer.create_credential(challenge))
+            payment = asyncio.create_task(create_credential(buyer, challenge))
             try:
                 credential = await payment
                 result: dict[str, object] = {
@@ -309,12 +310,12 @@ async def test_wrong_challenge_closed_and_explicit_cancel() -> None:
 
     buyer = BuyerMethod(ClientOptions(transport=httpx.MockTransport(handle)))
     with pytest.raises(ValueError, match="does not match"):
-        await buyer.create_credential(subscription())
+        await create_credential(buyer, subscription())
     await buyer.cancel_approval("approval")
     await buyer.aclose()
     await buyer.aclose()
     with pytest.raises(RuntimeError, match="closed"):
-        await buyer.create_credential(to_pympp_challenge(WIRE))
+        await create_credential(buyer, to_pympp_challenge(WIRE))
     assert requests == ["/v1/approvals/approval/cancel"]
 
 
@@ -339,7 +340,7 @@ async def test_malformed_response(response: object) -> None:
         )
     ) as buyer:
         with pytest.raises(MppMalformedCredentialError):
-            await buyer.create_credential(to_pympp_challenge(WIRE))
+            await create_credential(buyer, to_pympp_challenge(WIRE))
 
 
 async def test_error_details_and_missing_source() -> None:
@@ -370,12 +371,9 @@ async def test_error_details_and_missing_source() -> None:
             )
         )
     ) as buyer:
-        result = await buyer.create_credential(to_pympp_challenge(wire))
-    assert decode_credential(result.to_authorization()[8:]) == credential
-    result.payload["nested"].append(2)
-    assert decode_credential(result.to_authorization()[8:])["payload"] == {"nested": [1, 2]}
+        result = await buyer.create_credential(CredentialParams(challenge=to_pympp_challenge(wire)))
+    assert decode_credential(result[8:]) == credential
     assert wire == original
-    assert replace(result, source="did:test").source == "did:test"
 
 
 @pytest.mark.parametrize("stage", ["create", "poll", "authorize"])
@@ -406,7 +404,7 @@ async def test_cancel_concurrent_and_reuse(stage: str, mode: str) -> None:
         subscription_id=ID if stage == "authorize" else None,
     )
     challenge = subscription() if stage == "authorize" else to_pympp_challenge(WIRE)
-    payments = [asyncio.create_task(buyer.create_credential(challenge)) for _ in range(2)]
+    payments = [asyncio.create_task(create_credential(buyer, challenge)) for _ in range(2)]
     await asyncio.wait_for(started.wait(), 2)
     if mode == "caller":
         for task in payments:
@@ -421,7 +419,7 @@ async def test_cancel_concurrent_and_reuse(stage: str, mode: str) -> None:
     assert not any("/delete" in path for path in requests)
     if mode != "close":
         block = False
-        assert (await buyer.create_credential(challenge)).source == "did:inflow:buyer"
+        assert (await create_credential(buyer, challenge)).source == "did:inflow:buyer"
     await buyer.aclose()
 
 
@@ -475,7 +473,7 @@ async def test_real_http_cancellation(stage: str, partial_body: bool) -> None:
             subscription_id=ID if stage == "authorize" else None,
         ) as buyer,
     ):
-        task = asyncio.create_task(buyer.create_credential(to_pympp_challenge(wire)))
+        task = asyncio.create_task(create_credential(buyer, to_pympp_challenge(wire)))
         await asyncio.wait_for(started.wait(), 2)
         task.cancel()
         with pytest.raises(asyncio.CancelledError):
@@ -498,10 +496,10 @@ async def test_zero_budget(state: str) -> None:
         ClientOptions(transport=httpx.MockTransport(handle)), pending_timeout=0
     ) as buyer:
         if state == "ready":
-            await buyer.create_credential(to_pympp_challenge(WIRE))
+            await create_credential(buyer, to_pympp_challenge(WIRE))
         else:
             with pytest.raises(MppPaymentTimeoutError):
-                await buyer.create_credential(to_pympp_challenge(WIRE))
+                await create_credential(buyer, to_pympp_challenge(WIRE))
     assert not any(path.endswith("/transaction/mpp") for path in paths)
 
 
@@ -526,8 +524,8 @@ async def test_no_retries(stage: str, failure: str) -> None:
         subscription_id=ID if stage == "authorize" else None,
     ) as buyer:
         with pytest.raises(InflowApiError) as error:
-            await buyer.create_credential(
-                subscription() if stage == "authorize" else to_pympp_challenge(WIRE)
+            await create_credential(
+                buyer, subscription() if stage == "authorize" else to_pympp_challenge(WIRE)
             )
     assert error.value.http_status == (503 if failure == "status" else 0)
     assert len(paths) == (3 if stage == "poll" else 1)
@@ -606,7 +604,7 @@ async def test_deadline_after_noncooperative_work(
         ClientOptions(transport=httpx.MockTransport(handle)), pending_timeout=0.01
     ) as buyer:
         with pytest.raises(MppPaymentTimeoutError) as failure:
-            await buyer.create_credential(to_pympp_challenge(WIRE))
+            await create_credential(buyer, to_pympp_challenge(WIRE))
     assert failure.value.transaction_id == "transaction"
     assert failure.value.timeout == 0.01
     assert len(paths) == (2 if phase == "wait" else 3)
@@ -633,7 +631,7 @@ async def test_early_wake_rechecks_advice(monkeypatch: pytest.MonkeyPatch) -> No
         return httpx.Response(200, json=ready())
 
     async with BuyerMethod(ClientOptions(transport=httpx.MockTransport(handle))) as buyer:
-        await buyer.create_credential(to_pympp_challenge(WIRE))
+        await create_credential(buyer, to_pympp_challenge(WIRE))
     assert len(calls) >= 2
 
 
@@ -661,7 +659,7 @@ async def test_token_timeout_is_not_pending_timeout() -> None:
         )
     ) as buyer:
         with pytest.raises(TimeoutError) as error:
-            await buyer.create_credential(to_pympp_challenge(WIRE))
+            await create_credential(buyer, to_pympp_challenge(WIRE))
     assert error.value is original and count == 3
 
 
@@ -686,7 +684,7 @@ async def test_cancel_during_wait_or_token(phase: str) -> None:
     async with BuyerMethod(
         ClientOptions(access_token=token, transport=httpx.MockTransport(handle))
     ) as buyer:
-        payment = asyncio.create_task(buyer.create_credential(to_pympp_challenge(WIRE)))
+        payment = asyncio.create_task(create_credential(buyer, to_pympp_challenge(WIRE)))
         await asyncio.wait_for(entered.wait(), 1)
         payment.cancel()
         with pytest.raises(asyncio.CancelledError):
@@ -713,7 +711,7 @@ async def test_default_interval_and_failed_without_problem() -> None:
         ClientOptions(transport=httpx.MockTransport(handle)), poll_interval=0.02
     ) as buyer:
         with pytest.raises(MppPaymentFailedError) as error:
-            await buyer.create_credential(to_pympp_challenge(WIRE))
+            await create_credential(buyer, to_pympp_challenge(WIRE))
     assert error.value.problem is None
 
 
@@ -726,9 +724,8 @@ async def test_empty_source_is_preserved() -> None:
             )
         )
     ) as buyer:
-        result = await buyer.create_credential(to_pympp_challenge(WIRE))
-    assert result.source == ""
-    assert decode_credential(result.to_authorization()[8:]) == wire
+        result = await buyer.create_credential(CredentialParams(challenge=to_pympp_challenge(WIRE)))
+    assert decode_credential(result[8:]) == wire
 
 
 @pytest.mark.parametrize("cancel", [False, True])

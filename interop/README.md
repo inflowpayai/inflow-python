@@ -38,9 +38,8 @@ MPP broadcasts before calling the protected handler. x402 verifies before the
 handler and settles after a successful handler response. The assertions reflect
 these different lifecycles rather than treating them as interchangeable.
 
-Python MPP Seller subscriptions are excluded because pympp's Seller routes lack
-the required terms; see [pympp #269](https://github.com/tempoxyz/pympp/issues/269).
-The standalone Python MPP decorator does not set private cache headers on the
+Python MPP Seller subscriptions are excluded because the InFlow Seller implements
+charge payments only. The Python MPP decorator does not set private cache headers on the
 handler's response; the application owns those headers. Cache assertions apply
 to Node MPP and both x402 middleware implementations.
 

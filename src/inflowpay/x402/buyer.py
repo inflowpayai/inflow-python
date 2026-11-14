@@ -388,7 +388,6 @@ class Buyer(x402Client):
             required.extensions = deepcopy(extensions)
         selected = await self.select_inflow_requirement(required)
         if selected is None:
-            # Preserve upstream wallet execution; its Solana network calls are synchronous.
             payload = await super().create_payment_payload(required)
             if not isinstance(payload, PaymentPayload) or payload.x402_version != 2:
                 raise X402PaymentError("invalid-response", "Expected x402 version 2")

@@ -14,6 +14,7 @@ from inflowpay.mpp.seller import Seller as MppSeller
 from inflowpay.x402.buyer import Buyer
 from inflowpay.x402.facilitator import Facilitator
 from inflowpay.x402.seller import Seller as X402Seller
+from mpp_support import broadcast, create_credential
 from test_mpp_seller import CONFIG, ID, TERMS, wire_credential
 from test_runtime_native import native_server
 from test_x402_buyer import REQUIREMENT, RESOURCE, SUPPORTED
@@ -41,10 +42,10 @@ async def payment_operation(
             secret_key="test-only-challenge-key",
         )
         async with BuyerMethod(options) as method:
-            yield lambda: method.create_credential(challenge)
+            yield lambda: create_credential(method, challenge)
     elif kind == "mpp-seller":
         async with await MppSeller.create(options) as seller:
-            yield lambda: seller.broadcast(wire_credential(), TERMS)
+            yield lambda: broadcast(seller, wire_credential(), TERMS)
     elif kind == "x402-buyer":
         async with await Buyer.create(options) as buyer:
             yield lambda: buyer.prepare(REQUIREMENT, RESOURCE)
