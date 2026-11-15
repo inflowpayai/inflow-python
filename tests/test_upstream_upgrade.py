@@ -44,7 +44,9 @@ async def test_unsupported_context_cannot_start_payment(context: object) -> None
         pytest.fail("Unsupported context reached the payment service")
 
     async with BuyerMethod(ClientOptions(transport=httpx.MockTransport(unexpected))) as method:
-        with pytest.raises(ValueError, match="configure selectors"):
+        with pytest.raises(
+            ValueError, match=r"Unknown per-request payment option|Expected a JSON object"
+        ):
             await method.create_credential(
                 CredentialParams(challenge=to_pympp_challenge(WIRE), context=context)
             )

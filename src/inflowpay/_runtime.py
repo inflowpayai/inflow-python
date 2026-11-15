@@ -169,6 +169,7 @@ class Client:
         body: object = None,
         headers: Mapping[str, str] | None = None,
         retries: int = 0,
+        response_parser: Callable[[httpx.Response], object] = _parse,
     ) -> object:
         # Retry permission belongs to the protocol operation, not the HTTP method.
         if not path.startswith("/") or path.startswith("//") or "#" in path:
@@ -181,7 +182,7 @@ class Client:
         content = None if body is None else json.dumps(body, allow_nan=False).encode()
         attempt = 0
         while True:
-            error = await self._attempt(method, path, content, extra)
+            error = await self._attempt(method, path, content, extra, response_parser)
             if not isinstance(error, InflowApiError):
                 return error
             if attempt >= min(retries, 3) or (
@@ -197,6 +198,7 @@ class Client:
         path: str,
         content: bytes | None,
         extra: dict[str, str],
+        response_parser: Callable[[httpx.Response], object],
     ) -> object:
         await asyncio.sleep(0)
         token = self._options.api_key
@@ -244,7 +246,7 @@ class Client:
                 endpoint=path,
             )
         if response.is_success:
-            return _parse(response)
+            return response_parser(response)
         return _error(path, response, (token,) if token else ())
 
     async def get_payment_status(

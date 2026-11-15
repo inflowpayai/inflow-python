@@ -3,11 +3,11 @@ from __future__ import annotations
 import asyncio
 import math
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
 from types import TracebackType
-from typing import Self
+from typing import Self, TypedDict
 from urllib.parse import quote
 from uuid import UUID
 
@@ -15,10 +15,11 @@ import httpx
 from mpp import Challenge, Credential
 from mpp.client.transport import PaymentTransport
 from mpp.events import CHALLENGE_RECEIVED, EventDispatcher, EventPayload
-from mpp.runtime import ClientMethod, CredentialParams
+from mpp.runtime import ClientMethod, CredentialParams, OrderChallenges
 
 from .._runtime import Client
 from ..options import ClientOptions
+from ._controls import controls
 from ._method import method_definition
 from ._pympp import from_pympp_challenge
 from ._requests import validate_payload, validate_request
@@ -38,8 +39,17 @@ __all__ = [
     "MppPaymentExpiredError",
     "MppPaymentFailedError",
     "MppPaymentTimeoutError",
+    "PaymentOptions",
     "payment_transport",
 ]
+
+
+class PaymentOptions(TypedDict, total=False):
+    """Omitted selectors inherit buyer defaults; None clears a selector."""
+
+    instrument_id: str | None
+    subscription_id: str | None
+    merchant: WireObject | None
 
 
 class MppMalformedCredentialError(ValueError):
@@ -133,6 +143,34 @@ def _card_merchant(value: WireObject | None) -> WireObject:
     return {"name": name, "url": url, "countryCode": country}
 
 
+def _validate_options(
+    method: str,
+    intent: str,
+    instrument_id: str | None,
+    subscription_id: str | None,
+    merchant: WireObject | None,
+) -> WireObject | None:
+    for value in (instrument_id, subscription_id):
+        if value is not None:
+            UUID(value)
+    if instrument_id is not None and (method, intent) not in (
+        ("inflow", "charge"),
+        ("card", "charge"),
+    ):
+        raise ValueError("instrument_id applies only to InFlow or CARD charge")
+    if (
+        method == "card"
+        and instrument_id is not None
+        and not re.fullmatch(r"[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", instrument_id)
+    ):
+        raise ValueError("CARD instrument_id must be a hyphenated UUID")
+    if merchant is not None and method != "card":
+        raise ValueError("merchant applies only to CARD charge")
+    if subscription_id is not None and intent != "subscription":
+        raise ValueError("subscription_id applies only to InFlow subscription")
+    return _card_merchant(merchant) if method == "card" else None
+
+
 class BuyerMethod(ClientMethod):
     def __init__(
         self,
@@ -145,6 +183,12 @@ class BuyerMethod(ClientMethod):
         merchant: WireObject | None = None,
         poll_interval: float = 5,
         pending_timeout: float = 900,
+        max_amount: str | None = None,
+        max_atomic_amount: int | str | None = None,
+        max_amount_decimals: int | None = None,
+        currencies: Sequence[str] | None = None,
+        expected_recipients: Sequence[str] | None = None,
+        allowed_chain_ids: Sequence[int] | None = None,
     ) -> None:
         if (method, intent) not in (
             ("inflow", "charge"),
@@ -153,33 +197,31 @@ class BuyerMethod(ClientMethod):
             ("card", "charge"),
         ):
             raise ValueError("Unsupported MPP Buyer method or intent")
-        for value in (instrument_id, subscription_id):
-            if value is not None:
-                UUID(value)
-        if instrument_id is not None and (method, intent) not in (
-            ("inflow", "charge"),
-            ("card", "charge"),
-        ):
-            raise ValueError("instrument_id applies only to InFlow or CARD charge")
-        if (
-            method == "card"
-            and instrument_id is not None
-            and not re.fullmatch(
-                r"[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", instrument_id
-            )
-        ):
-            raise ValueError("CARD instrument_id must be a hyphenated UUID")
-        if merchant is not None and method != "card":
-            raise ValueError("merchant applies only to CARD charge")
         object.__setattr__(
-            self, "_merchant", _card_merchant(merchant) if method == "card" else None
+            self,
+            "_merchant",
+            _validate_options(method, intent, instrument_id, subscription_id, merchant),
         )
-        if subscription_id is not None and intent != "subscription":
-            raise ValueError("subscription_id applies only to InFlow subscription")
         if any(not math.isfinite(value) or value < 0 for value in (poll_interval, pending_timeout)):
             raise ValueError("Polling settings must be finite and nonnegative")
+        object.__setattr__(
+            self,
+            "_check_limits",
+            controls(
+                method,
+                intent,
+                max_amount=max_amount,
+                max_atomic_amount=max_atomic_amount,
+                max_amount_decimals=max_amount_decimals,
+                currencies=currencies,
+                expected_recipients=expected_recipients,
+                allowed_chain_ids=allowed_chain_ids,
+            ),
+        )
         super().__init__(
-            method=method_definition(method, intent), create_credential=self._credential
+            method=method_definition(method, intent),
+            create_credential=self._credential,
+            can_handle_challenge=self._accepts,
         )
         # Upstream methods are frozen; only private resource state changes over their lifetime.
         object.__setattr__(self, "_instrument_id", instrument_id)
@@ -198,6 +240,16 @@ class BuyerMethod(ClientMethod):
     _client: Client
     _active: set[asyncio.Task[Credential]]
     _closed: bool
+    _check_limits: Callable[[WireObject], None]
+
+    def _accepts(self, challenge: Challenge) -> bool:
+        try:
+            self._check_limits(
+                validate_request(challenge.method, challenge.intent, decode(challenge.request_b64))
+            )
+            return True
+        except ValueError:
+            return False
 
     async def __aenter__(self) -> Self:
         return self
@@ -239,37 +291,55 @@ class BuyerMethod(ClientMethod):
     async def _credential_object(self, params: CredentialParams) -> Credential:
         if self._closed:
             raise RuntimeError("MPP Buyer method is closed")
-        if params.context is not None and params.context != {}:
-            raise ValueError("Per-call context is unsupported; configure selectors on BuyerMethod")
+        context = params.context
+        if context is None and isinstance(params.request, httpx.Request):
+            context = params.request.extensions.get("inflow.payment")
+        overrides = {} if context is None else object_value(context)
+        if overrides.keys() - {"instrument_id", "subscription_id", "merchant"}:
+            raise ValueError("Unknown per-request payment option")
+        instrument = overrides.get("instrument_id", self._instrument_id)
+        subscription = overrides.get("subscription_id", self._subscription_id)
+        merchant = overrides.get("merchant", self._merchant)
+        selected_merchant = _validate_options(
+            self.name,
+            self.intent,
+            None if instrument is None else string(instrument),
+            None if subscription is None else string(subscription),
+            None if merchant is None else object_value(merchant),
+        )
+        options: WireObject = {} if instrument is None else {"instrumentId": instrument}
+        if selected_merchant is not None:
+            options["merchant"] = selected_merchant
         challenge = params.challenge
         wire = from_pympp_challenge(challenge)
         if challenge.method != self.name or challenge.intent != self.intent:
             raise ValueError("Challenge does not match this MPP Buyer method")
-        validate_request(challenge.method, challenge.intent, decode(challenge.request_b64))
-        task = asyncio.create_task(self._create(wire))
+        self._check_limits(
+            validate_request(challenge.method, challenge.intent, decode(challenge.request_b64))
+        )
+        task = asyncio.create_task(
+            self._create(wire, options, None if subscription is None else string(subscription))
+        )
         self._active.add(task)
         try:
             return await task
         finally:
             self._active.discard(task)
 
-    async def _create(self, challenge: WireObject) -> Credential:
-        if self._subscription_id is not None:
+    async def _create(
+        self, challenge: WireObject, options: WireObject, subscription_id: str | None
+    ) -> Credential:
+        if subscription_id is not None:
             response = _response(
                 await self._client.request(
                     "POST",
-                    f"/v1/subscriptions/{quote(self._subscription_id, safe='')}/authorize",
+                    f"/v1/subscriptions/{quote(subscription_id, safe='')}/authorize",
                     body={"challenge": challenge},
                 )
             )
             if "problem" in response:
                 raise MppPaymentFailedError(object_value(response["problem"]))
             return _credential(response, challenge)
-        options: WireObject = (
-            {} if self._instrument_id is None else {"instrumentId": self._instrument_id}
-        )
-        if self._merchant is not None:
-            options["merchant"] = deepcopy(self._merchant)
         response = _response(
             await self._client.request(
                 "POST",
@@ -345,7 +415,9 @@ class _PaymentEvents(EventDispatcher):
             if isinstance(method, BuyerMethod) and isinstance(challenge, Challenge):
                 # Supply the wire-preserving object before pympp reparses its serialization.
                 # Do not use a normal listener: its exceptions are swallowed, allowing a retry.
-                return await method._credential_object(CredentialParams(challenge=challenge))
+                return await method._credential_object(
+                    CredentialParams(challenge=challenge, request=payload.get("request"))
+                )
         return supplied
 
 
@@ -353,8 +425,13 @@ def payment_transport(
     methods: Sequence[ClientMethod],
     *,
     inner: httpx.AsyncBaseTransport | None = None,
+    order_challenges: OrderChallenges | None = None,
 ) -> PaymentTransport:
     # pympp creates another credential on each retry. Limit automatic payment to one attempt.
     return PaymentTransport(
-        methods=methods, inner=inner, events=_PaymentEvents(), max_payment_retries=1
+        methods=methods,
+        inner=inner,
+        events=_PaymentEvents(),
+        max_payment_retries=1,
+        order_challenges=order_challenges,
     )

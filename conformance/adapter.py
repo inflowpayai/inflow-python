@@ -14,7 +14,13 @@ from mpp.server import Mpp, ServerMethod
 from mpp.server.decorator import pay
 from mpp.server.method import ValidateContext, VerifyContext
 from starlette.responses import JSONResponse
-from x402.schemas import PaymentPayload, PaymentRequirements, ResourceInfo
+from x402.schemas import (
+    PaymentPayload,
+    PaymentRequirements,
+    ResourceInfo,
+    SettleResponse,
+    VerifyResponse,
+)
 
 from conformance.tap import tap_execute
 from inflowpay import ClientOptions, InflowApiError, mpp, x402
@@ -380,16 +386,26 @@ async def x402_execute(operation: str, data: Data) -> object:
     ) as facilitator:
         payload = PaymentPayload.model_validate(data["payment_payload"])
         requirement = PaymentRequirements.model_validate(data["payment_requirements"])
+
+        def observe(result: VerifyResponse | SettleResponse) -> Data:
+            # Metadata is observable by sellers but intentionally absent from wire serialization.
+            return {
+                **result.model_dump(exclude_none=True),
+                **(
+                    {"extensionResponses": result.extension_responses}
+                    if result.extension_responses is not None
+                    else {}
+                ),
+            }
+
         if operation == "x402.seller.settle":
-            return (await facilitator.settle(payload, requirement)).model_dump(exclude_none=True)
+            return observe(await facilitator.settle(payload, requirement))
         verified = await facilitator.verify(payload, requirement)
         if operation == "x402.seller.verify":
-            return verified.model_dump(exclude_none=True)
-        observations = {"verification": verified.model_dump(exclude_none=True)}
+            return observe(verified)
+        observations = {"verification": observe(verified)}
         if verified.is_valid:
-            observations["settlement"] = (
-                await facilitator.settle(payload, requirement)
-            ).model_dump(exclude_none=True)
+            observations["settlement"] = observe(await facilitator.settle(payload, requirement))
         return observations
 
 

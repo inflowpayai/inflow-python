@@ -125,6 +125,25 @@ def build_offers(
                 if not include(scheme, asset.network):
                     continue
                 extra: dict[str, Any] = {"assetName": asset.asset_name}
+                if scheme == "exact" and asset.network.startswith("solana:"):
+                    supported = next(
+                        (
+                            kind
+                            for kind in config.supported
+                            if kind.x402_version == 2
+                            and kind.scheme == scheme
+                            and kind.network == asset.network
+                        ),
+                        None,
+                    )
+                    if (
+                        supported is not None
+                        and supported.extra is not None
+                        and "transactionVersions" in supported.extra
+                    ):
+                        extra["transactionVersions"] = deepcopy(
+                            supported.extra["transactionVersions"]
+                        )
                 for key, value in (
                     ("name", asset.token_name),
                     ("version", asset.token_version),
