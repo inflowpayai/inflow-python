@@ -233,6 +233,37 @@ fields through pympp's request retry. Plain pympp `PaymentRuntime` and `McpClien
 rebuild credentials using fixed-field models and can drop additional credential
 fields and an empty `source`. Their normal payment payload is retained.
 
+### Select options for one request
+
+Pass `PaymentOptions` through HTTPX's `extensions` argument to override a buyer's
+defaults for one request. Omit a field to inherit its constructor value, or set it
+to `None` to clear that value. Clearing the instrument lets InFlow select the
+funding source; clearing the subscription requests a new subscription payment
+instead of authorizing an existing subscription. CARD payments still require
+valid merchant details, so clearing the merchant fails before requesting payment.
+
+```python
+from inflowpay.mpp.buyer import PaymentOptions
+
+response = await http.get(
+    resource_url,
+    extensions={"inflow.payment": PaymentOptions(instrument_id=instrument_id)},
+)
+```
+
+The options are local request metadata, not HTTP headers or a request body. They
+are validated and copied before payment creation; concurrent requests do not
+change each other's settings. Direct method calls accept the same options as
+`CredentialParams(context=PaymentOptions(...), challenge=challenge)`. Cancelling
+the request's asyncio task cancels that request's approval wait, not other requests
+using the same buyer.
+
+To select among offered challenges, pass pympp's native `order_challenges`
+callback to `payment_transport`. It receives supported challenge candidates and
+may return them in a different order or filter them. Returning an empty sequence
+rejects payment without creating an approval. The transport retains its one-paid-
+attempt limit regardless of the callback.
+
 | Constructor settings | Behavior |
 | --- | --- |
 | Defaults: `method="inflow", intent="charge"` | Pay an InFlow charge using the rail advertised by the seller. |
@@ -242,13 +273,32 @@ fields and an empty `source`. Their normal payment payload is retained.
 | `intent="subscription"` | Purchase a subscription through the create-and-approve flow. |
 | `intent="subscription", subscription_id="..."` | Authorize access using that existing subscription and the current seller challenge; do not purchase another subscription. |
 
-Instrument and subscription identifiers are UUID strings. They are fixed when the
-method is constructed. This adapter rejects nonempty per-call `context`; configure
-selectors on the constructor instead.
-Use separate method instances for different selections; do not change
+Instrument and subscription identifiers are UUID strings. Constructor values are
+defaults; use `PaymentOptions` for request-specific selections. Do not mutate
 one instance's settings between concurrent requests. Do not register several methods
 with the same method/intent expecting pympp to choose a funding instrument: pympp
 selects the first matching method. Select the intended instance in your application.
+
+### Limit automatic MPP payments
+
+`BuyerMethod` imposes no amount ceiling or allowlist unless you configure one.
+For example, `BuyerMethod(options, max_amount="5.00", currencies=["USD"])`
+accepts InFlow charges of at most five USD. Limits filter challenge selection and
+are checked again before direct credential creation, before any approval request.
+`PaymentOptions` cannot change or disable them.
+
+| Method | Optional limits |
+| --- | --- |
+| InFlow charge | `max_amount` in decimal currency units requires `currencies`; `expected_recipients` restricts recipient identifiers. |
+| Tempo charge | `max_atomic_amount` limits smallest token units. `max_amount` requires explicit `max_amount_decimals`. Either amount limit requires `currencies` containing token addresses. `allowed_chain_ids` restricts chains; `expected_recipients` checks both the primary recipient and every split recipient. |
+| CARD charge | `max_amount` is USD with at most two significant decimal places; `max_atomic_amount` is cents. |
+
+When both amount limits are supplied, both must pass. Empty allowlists reject all
+payments for that field. Tempo addresses are compared case-insensitively; InFlow
+currency and recipient identifiers are exact matches. Configuration is copied at
+construction, so editing the caller's lists cannot relax a buyer's limits. Charge
+limits are rejected on subscription methods rather than applied to recurring
+payments with different approval semantics.
 
 ### Pay with a linked Visa card
 
@@ -421,6 +471,11 @@ locally and is separate from the InFlow API key. Set `requires_auth=True` on `Mp
 when application authentication uses `Authorization`; pympp then uses
 `Payment-Authorization` for the payment credential. The decorator does not implement
 your application's authentication or access-control policy.
+
+For an entire ASGI application, pympp also provides
+`PaymentMiddleware(app, payments.charge(**terms))` in `mpp.server.asgi`.
+It protects every HTTP route in that application; mount it only around routes
+that require payment, not around public health or discovery endpoints.
 
 pympp's `pay` decorator returns HTTP `402` for payment errors, including a pending
 settlement whose Problem Details body has `status: 503`. The InFlow Seller preserves
@@ -979,6 +1034,108 @@ forces a refresh. `await seller.get_supported(refresh=True)` refreshes the Selle
 capability lookup, not a running Facilitator or resource server. Values returned
 by these methods can be modified without changing the client's cache.
 
+### Native x402 extensions
+
+`Buyer` inherits upstream extension registration. Sellers register native
+extensions on `x402ResourceServer` and attach declarations to `RouteConfig.extensions`.
+There is no separate InFlow extension registry. For the examples below, install
+`x402[extensions]` alongside `inflowpay[evm,fastapi]` in compatible versions.
+
+#### Wallet authentication for paid resources
+
+Sign-In-With-X lets an external wallet prove ownership of the address that paid
+for a resource. Register the upstream client extension on your buyer:
+
+```python
+from x402.extensions.sign_in_with_x import (
+    CreateSIWxClientExtensionOptions,
+    create_siwx_client_extension,
+)
+
+buyer.register_extension(
+    create_siwx_client_extension(CreateSIWxClientExtensionOptions(signers=[wallet]))
+)
+```
+
+Here `wallet` is your external signing account, such as an `eth_account` account;
+the InFlow managed wallet does not provide this message-signing interface. Use the
+native `x402AsyncTransport` with the buyer so its HTTP authentication hooks run.
+Calling `create_payment_payload` directly does not perform HTTP authentication.
+
+On the seller, configure the public origin and storage, then declare the extension
+on each applicable route:
+
+```python
+from x402.extensions.sign_in_with_x import (
+    CreateSIWxResourceServerExtensionOptions,
+    DeclareSIWxOptions,
+    create_siwx_resource_server_extension,
+    declare_siwx_extension,
+)
+
+resource_server.register_extension(
+    create_siwx_resource_server_extension(
+        CreateSIWxResourceServerExtensionOptions(origin="https://store.example", storage=storage)
+    )
+)
+route = await seller.route("0.10 USDC", schemes=["exact"])
+route.extensions = declare_siwx_extension(DeclareSIWxOptions(expiration_seconds=300))
+```
+
+Storage must implement paid-resource tracking. For replay detection, also provide
+both `has_used_nonce` and `record_nonce`; upstream's `InMemorySIWxStorage` does not
+implement those two methods. Choose persistence and concurrency handling suitable
+for your deployment. The upstream hooks record access after successful settlement
+and check wallet proofs before running the protected handler. Authentication can
+avoid another payment for a resource whose access has already been recorded.
+If authentication fails, upstream can fall back to payment; configure buyer payment
+policies accordingly. Registering this extension does not enroll a user with AEP.
+
+#### Discovery metadata and explicit attribution
+
+Bazaar metadata describes a paid HTTP route. Attach its declaration to the same
+route used by the middleware, including request-time route resolvers:
+
+```python
+from x402.extensions.bazaar import declare_discovery_extension
+
+route = await seller.route("0.10 USDC")
+route.extensions = declare_discovery_extension()
+```
+
+Native middleware enriches route templates and request path parameters. This does
+not publish the service to the InFlow Directory or replace an ODP catalog.
+
+Builder attribution is opt-in. A seller can attach
+`{"builder-code": declare_builder_code_extension("your_app")}` using
+`x402.extensions.builder_code`. An external-wallet buyer can register
+`BuilderCodeClientExtension("your_client")` from that module. The facilitator must
+support builder-code settlement for those declarations to become on-chain
+attribution. InFlow's facilitator does not promise that capability; attaching
+metadata alone is not proof that a settlement transaction carries it. No InFlow
+builder code is injected automatically. The installed Python x402 extension set
+does not provide the signed-offer/signed-receipt extension available in Node.
+
+#### Browser paywalls
+
+The native paywall provider can be passed through the InFlow request-pricing
+middleware. For an EVM USDC route:
+
+```python
+from x402.http.paywall import create_paywall, evm_paywall
+from inflowpay.x402.fastapi import payment_middleware
+
+paywall = create_paywall().with_network(evm_paywall).with_config(app_name="Reports").build()
+app.middleware("http")(
+    payment_middleware({"GET /report": route}, resource_server, paywall_provider=paywall)
+)
+```
+
+Browser requests accepting HTML receive the native payment page; API clients
+receive the protocol's payment challenge. Configure a route and network the
+paywall actually supports. The native EVM paywall is not an InFlow hosted-wallet,
+balance, or CARD checkout interface.
+
 ### Prices, payment methods, and metering
 
 `seller.offers()` accepts `"$0.01"`, `"0.01 USDC"`, or `"0.01"` with
@@ -1085,6 +1242,17 @@ Anonymous setup rejects credentials; Seller configuration and InFlow balance
 settlement require a Seller account.
 
 ## x402 facilitator capabilities
+
+Verification and settlement results expose valid `EXTENSION-RESPONSES` header
+metadata as `result.extension_responses` for seller hooks. Missing or malformed
+metadata is ignored; it does not change whether verification or settlement
+succeeded. Upstream response models exclude this field from serialized buyer
+receipts.
+
+For Solana exact offers, seller configuration's matching supported capability
+supplies `extra.transactionVersions`. The SDK preserves that value and does not
+advertise version support when it is absent. The managed buyer forwards the
+selected requirement unchanged; the wallet service constructs the transaction.
 
 Facilitator capabilities describe the payment schemes, networks, and extensions
 the facilitator supports. InFlow fetches these capabilities asynchronously during

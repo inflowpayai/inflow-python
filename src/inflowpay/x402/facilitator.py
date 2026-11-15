@@ -7,6 +7,8 @@ import re
 from types import TracebackType
 from typing import Self
 
+import httpx
+from x402.http.extension_responses import extract_extension_responses_header
 from x402.schemas import (
     PaymentPayload,
     PaymentPayloadV1,
@@ -26,6 +28,20 @@ from ._core import (
     read_payment_identifier,
     validate_payment_id,
 )
+
+
+def _verify_response(response: httpx.Response) -> VerifyResponse:
+    result = VerifyResponse.model_validate(response.json())
+    return result.model_copy(
+        update={"extension_responses": extract_extension_responses_header(response)}
+    )
+
+
+def _settle_response(response: httpx.Response) -> SettleResponse:
+    result = SettleResponse.model_validate(response.json())
+    return result.model_copy(
+        update={"extension_responses": extract_extension_responses_header(response)}
+    )
 
 
 def _request(
@@ -109,7 +125,10 @@ class Facilitator:
     ) -> VerifyResponse:
         try:
             response = await self._client.request(
-                "POST", "/v1/x402/verify", body=_request(payload, requirements)
+                "POST",
+                "/v1/x402/verify",
+                body=_request(payload, requirements),
+                response_parser=_verify_response,
             )
         except InflowApiError as error:
             body = error.body
@@ -120,7 +139,9 @@ class Facilitator:
                 and body.get("invalidReason") == "permit2_allowance_required"
             ):
                 raise
-            response = body
+            response = VerifyResponse.model_validate(body).model_copy(
+                update={"extension_responses": extract_extension_responses_header(error)}
+            )
         return VerifyResponse.model_validate(response)
 
     async def settle(
@@ -132,7 +153,9 @@ class Facilitator:
         attempt = 1
         while True:
             try:
-                response = await self._client.request("POST", "/v1/x402/settle", body=body)
+                response = await self._client.request(
+                    "POST", "/v1/x402/settle", body=body, response_parser=_settle_response
+                )
                 return SettleResponse.model_validate(response)
             except InflowApiError as error:
                 if not (
