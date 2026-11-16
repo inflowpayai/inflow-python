@@ -244,6 +244,7 @@ class BuyerMethod(ClientMethod):
 
     def _accepts(self, challenge: Challenge) -> bool:
         try:
+            from_pympp_challenge(challenge)
             self._check_limits(
                 validate_request(challenge.method, challenge.intent, decode(challenge.request_b64))
             )

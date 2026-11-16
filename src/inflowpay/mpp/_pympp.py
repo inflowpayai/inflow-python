@@ -51,6 +51,8 @@ class _WireChallenge(Challenge):
 def to_pympp_challenge(value: WireObject) -> Challenge:
     # Parse only at this boundary; the wire object retains extensions that pympp cannot represent.
     validate_challenge(value)
+    # pympp #431 normalizes explicit Authorization/empty before payment methods see it.
+    _validate_credential_header(value)
     parsed = Challenge.from_www_authenticate(render_challenge_header(value))
     return _WireChallenge(
         **{item.name: getattr(parsed, item.name) for item in fields(parsed)}, _wire=deepcopy(value)
@@ -75,6 +77,14 @@ def from_pympp_challenge(value: Challenge) -> WireObject:
         # Converted challenges retain raw opaque bytes; native pympp challenges expose its echo.
         result["opaque"] = value.to_echo().opaque
     validate_challenge(result)
+    _validate_credential_header(result)
     if object_value(decode(value.request_b64)) != value.request:
         raise ValueError("pympp challenge request differs from its encoded request")
     return deepcopy(result)
+
+
+def _validate_credential_header(value: WireObject) -> None:
+    if "header" in value and (
+        not isinstance(value["header"], str) or value["header"].lower() != "payment-authorization"
+    ):
+        raise MppCodecError("Challenge header must be omitted or Payment-Authorization")

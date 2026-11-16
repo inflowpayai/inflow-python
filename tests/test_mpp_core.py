@@ -211,7 +211,7 @@ def test_pympp_boundary() -> None:
         "digest": "sha-256=" + base64.b64encode(bytes(32)).decode(),
         "expires": "2099-01-01T00:00:00Z",
         "opaque": "eyJrIjoidiJ9",
-        "header": "X-Payment",
+        "header": "Payment-Authorization",
     }
     upstream = to_pympp_challenge(wire)
     assert isinstance(upstream, Challenge)

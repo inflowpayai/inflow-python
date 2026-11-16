@@ -1,6 +1,7 @@
 import asyncio
 import json
 from collections.abc import Sequence
+from dataclasses import replace
 
 import httpx
 import pytest
@@ -8,11 +9,74 @@ from mpp.errors import NoMethodFoundError
 from mpp.runtime import ChallengeCandidate, CredentialParams
 
 from inflowpay import ClientOptions
-from inflowpay.mpp import decode_credential, to_pympp_challenge
+from inflowpay.mpp import decode_credential, render_challenge_header, to_pympp_challenge
+from inflowpay.mpp._wire import MppCodecError
 from inflowpay.mpp.buyer import BuyerMethod, PaymentOptions, payment_transport
 from test_card_buyer import CHALLENGE, MERCHANT
 from test_card_buyer import ready as card_ready
 from test_mpp_buyer import ID, WIRE, ready, subscription
+
+
+@pytest.mark.parametrize("header", ["Authorization", "authorization", "", "X-Payment", None])
+def test_invalid_wire_header_is_rejected_before_native_conversion(header: str | None) -> None:
+    with pytest.raises(MppCodecError, match="header"):
+        to_pympp_challenge({**WIRE, "header": header})
+
+
+async def test_invalid_native_header_cannot_start_payment() -> None:
+    calls: list[httpx.Request] = []
+
+    def platform(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(500)
+
+    async with BuyerMethod(
+        ClientOptions(api_key="test", transport=httpx.MockTransport(platform))
+    ) as buyer:
+        challenge = replace(to_pympp_challenge(WIRE), header="X-Payment")
+        assert not buyer._accepts(challenge)
+        with pytest.raises(MppCodecError, match="header"):
+            await buyer.create_credential(CredentialParams(challenge=challenge))
+    assert calls == []
+
+
+@pytest.mark.parametrize("valid_alternative", [False, True])
+async def test_native_transport_skips_custom_header(valid_alternative: bool) -> None:
+    payments: list[str] = []
+
+    def platform(request: httpx.Request) -> httpx.Response:
+        wire = json.loads(request.content)["challenge"]
+        payments.append(wire["id"])
+        assert "header" not in wire
+        return httpx.Response(200, json=ready(wire))
+
+    def seller(request: httpx.Request) -> httpx.Response:
+        if "authorization" in request.headers:
+            return httpx.Response(200)
+        headers = [
+            (
+                "www-authenticate",
+                render_challenge_header({**WIRE, "id": "invalid", "header": "X-Payment"}),
+            )
+        ]
+        if valid_alternative:
+            headers.append(("www-authenticate", render_challenge_header(WIRE)))
+        return httpx.Response(402, headers=headers)
+
+    async with (
+        BuyerMethod(
+            ClientOptions(api_key="test", transport=httpx.MockTransport(platform))
+        ) as buyer,
+        httpx.AsyncClient(
+            transport=payment_transport([buyer], inner=httpx.MockTransport(seller))
+        ) as client,
+    ):
+        if valid_alternative:
+            assert (await client.get("https://seller.example")).status_code == 200
+        else:
+            with pytest.raises(NoMethodFoundError):
+                await client.get("https://seller.example")
+    assert payments == ([WIRE["id"]] if valid_alternative else [])
 
 
 async def test_request_options_are_isolated_through_native_transport() -> None:
@@ -111,23 +175,25 @@ async def test_invalid_options_fail_before_platform_request(options: object) -> 
 
 @pytest.mark.parametrize("reject", [False, True])
 async def test_native_ordering_and_alternate_payment_header(reject: bool) -> None:
-    wires = [{**WIRE, "id": value, "header": "Payment"} for value in ("first", "second")]
+    wires = [
+        {**WIRE, "id": value, "header": "Payment-Authorization"} for value in ("first", "second")
+    ]
     calls: list[str] = []
 
     def platform(request: httpx.Request) -> httpx.Response:
         challenge = json.loads(request.content)["challenge"]
         calls.append(challenge["id"])
-        assert challenge["header"] == "Payment"
+        assert challenge["header"] == "Payment-Authorization"
         return httpx.Response(200, json=ready(challenge))
 
     def seller(request: httpx.Request) -> httpx.Response:
         assert request.headers["authorization"] == "Bearer application-token"
-        if "payment" in request.headers:
-            credential = decode_credential(request.headers["payment"][8:])
+        if "payment-authorization" in request.headers:
+            credential = decode_credential(request.headers["payment-authorization"][8:])
             echoed = credential["challenge"]
             assert isinstance(echoed, dict)
             assert echoed["id"] == "second"
-            assert echoed["header"] == "Payment"
+            assert echoed["header"] == "Payment-Authorization"
             return httpx.Response(200)
         return httpx.Response(
             402,
