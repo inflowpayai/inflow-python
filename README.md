@@ -525,6 +525,16 @@ subscription and session Seller APIs are not provided.
 
 ## Upstream MPP compatibility
 
+### Credential header selection
+
+Payment challenges select `Authorization` by omitting `header`, or select
+`Payment-Authorization` explicitly. `to_pympp_challenge` rejects other explicit
+values before native conversion, and the buyer rejects unsupported values still
+present in a native challenge before requesting payment. pympp normalizes explicit
+`Authorization` and empty values to omission, so automatic HTTP calls cannot reject
+those values after parsing. [Upstream issue #431](https://github.com/tempoxyz/pympp/issues/431)
+tracks that limitation; custom fields such as `X-Payment` are rejected by the buyer.
+
 ### Wire values and request validation
 
 Install `inflowpay[mpp]` to use `inflowpay.mpp`. Its `WireObject` is a JSON dictionary
