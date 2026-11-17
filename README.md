@@ -1118,13 +1118,34 @@ not publish the service to the InFlow Directory or replace an ODP catalog.
 
 Builder attribution is opt-in. A seller can attach
 `{"builder-code": declare_builder_code_extension("your_app")}` using
-`x402.extensions.builder_code`. An external-wallet buyer can register
-`BuilderCodeClientExtension("your_client")` from that module. The facilitator must
-support builder-code settlement for those declarations to become on-chain
-attribution. InFlow's facilitator does not promise that capability; attaching
-metadata alone is not proof that a settlement transaction carries it. No InFlow
-builder code is injected automatically. The installed Python x402 extension set
-does not provide the signed-offer/signed-receipt extension available in Node.
+`x402.extensions.builder_code`. Both managed and external-wallet buyers use the
+existing extension registration:
+
+```python
+from typing import cast
+from x402.extensions.builder_code import BuilderCodeClientExtension
+from x402.schemas.extensions import ClientExtension
+
+# Upstream's extension omits optional hook attributes required by its protocol type.
+buyer.register_extension(cast(ClientExtension, BuilderCodeClientExtension("your_client")))
+```
+
+The constructor accepts up to five service codes, each 1–32 lowercase letters,
+digits, or underscores; invalid input raises `ValueError`. No InFlow buyer code is
+injected automatically. Seller attribution is forwarded even without a registered
+buyer extension.
+
+For managed payments, both `prepare` and `create_payment_payload` merge attribution
+before creating approval. The payment service must retain the submitted extensions
+so later retrieval returns the same attributed payload. Older services that ignore
+the extensions can still process payments but do not retain attribution. The SDK
+does not modify or re-encode the returned signed payload. Unrelated extension
+enrichment is not run on managed payments.
+
+The facilitator must support builder-code settlement for the metadata to become
+on-chain attribution. Attaching metadata alone does not prove that the settlement
+transaction carries it. The installed Python x402 extension set does not provide
+the signed-offer/signed-receipt extension available in Node.
 
 #### Browser paywalls
 

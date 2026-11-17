@@ -5,7 +5,7 @@ import inspect
 import re
 from collections.abc import AsyncIterator, Callable, Mapping, Sequence
 from copy import deepcopy
-from types import TracebackType
+from types import SimpleNamespace, TracebackType
 from typing import Any, Self, cast
 from urllib.parse import quote
 from weakref import WeakSet
@@ -59,6 +59,14 @@ def _is_circle_gateway(requirement: PaymentRequirements | PaymentRequirementsV1)
 def _reject_circle_gateway(requirement: PaymentRequirements | PaymentRequirementsV1) -> None:
     if _is_circle_gateway(requirement):
         raise NoMatchingRequirementsError("Circle Gateway payments are not supported by InFlow.")
+
+
+class _AttributionScheme:
+    def __init__(self, scheme: str) -> None:
+        self.scheme = scheme
+
+    def create_payment_payload(self, requirements: PaymentRequirements) -> dict[str, Any]:
+        return {}
 
 
 class Buyer(x402Client):
@@ -330,6 +338,9 @@ class Buyer(x402Client):
             else None,
             x402Version=2,
         )
+        attribution = await self._managed_extensions(context)
+        if attribution:
+            body["extensions"] = attribution
         if payment_id is not None:
             body["remotePaymentId"] = payment_id
         if context.selected_requirements.scheme == "instrument" and self._instrument_id is not None:
@@ -351,6 +362,40 @@ class Buyer(x402Client):
         )
         self._payments.add(prepared)
         return prepared
+
+    async def _managed_extensions(self, context: PaymentCreationContext) -> dict[str, Any]:
+        required = cast(PaymentRequired, context.payment_required)
+        declaration = (required.extensions or {}).get("builder-code")
+        extension = next((e for e in self.get_extensions() if e.key == "builder-code"), None)
+        enrich = getattr(extension, "enrich_payment_payload", None)
+        if declaration is None and enrich is None:
+            return {}
+
+        # Let upstream merge attribution before approval, without signing or paying.
+        # Forward only enrichment: managed creation already runs extension hooks.
+        attribution = x402Client().set_spend_controls(False)
+        # Managed contexts contain only V2 requirements.
+        selected = cast(PaymentRequirements, context.selected_requirements).model_copy(deep=True)
+        attribution.register(selected.network, _AttributionScheme(selected.scheme))
+        if enrich is not None:
+            attribution.register_extension(
+                SimpleNamespace(key="builder-code", enrich_payment_payload=enrich)
+            )
+        payload = await attribution.create_payment_payload(
+            PaymentRequired(
+                accepts=[selected],
+                extensions={} if declaration is None else {"builder-code": deepcopy(declaration)},
+                resource=deepcopy(required.resource),
+            )
+        )
+        task = asyncio.current_task()
+        assert task is not None
+        if task.cancelling():
+            raise asyncio.CancelledError
+        if not isinstance(payload, PaymentPayload) or payload.x402_version != 2:
+            raise X402PaymentError("invalid-response", "Expected x402 version 2")
+        builder = (payload.extensions or {}).get("builder-code")
+        return {} if builder is None else {"builder-code": builder}
 
     async def get_payment_status(
         self, transaction_id: str, *, retries: int = 0
